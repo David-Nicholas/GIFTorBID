@@ -7,10 +7,9 @@
             </div>
 
             <div class="nav-links">
-                <NuxtLink to="/" class="nav-btn" active-class="active-link">EXPLORE</NuxtLink>
-                <NuxtLink to="/post" class="nav-btn" active-class="active-link">POST</NuxtLink>
-                <NuxtLink to="/aquisitions" class="nav-btn" active-class="active-link">ACQUISITIONS</NuxtLink>
-                <NuxtLink to="/account" class="nav-btn" active-class="active-link">ACCOUNT</NuxtLink>
+                <NuxtLink to="/account" class="nav-btn" active-class="active-link"> 
+                    <img src="https://api.iconify.design/material-symbols:close-rounded.svg" alt="Close" class="close-icon" />
+                </NuxtLink>
             </div>
 
         </div>
@@ -23,7 +22,7 @@
 <style scoped>
 .navbar {
     background-color: rgb(255, 255, 255);
-    font-family: arial;
+    font-family: Arial, sans-serif;
 }
 
 .navbar-container {
@@ -34,25 +33,6 @@
     margin-bottom: 15px;
 }
 
-
-@media (max-width: 768px) {
-    .navbar-container {
-        flex-direction: column; 
-        align-items: center;   
-    }
-
-    .nav-links {
-        margin-top: 10px; 
-        flex-direction: column; 
-        align-items: center;
-    }
-
-    .nav-btn {
-        margin: 4px 0; 
-        padding: 10px; 
-    }
-}
-
 .logo img {
     height: 60px;
     width: 120px;
@@ -60,6 +40,7 @@
 
 .nav-links {
     display: flex;
+    align-items: center;
     gap: 7.5px; 
 }
 
@@ -77,5 +58,14 @@
 .active-link {
     color: #2596be;
 }
-</style>
 
+.close-icon {
+    height: 45px; 
+    margin-left: 30px; 
+}
+
+.close-icon:hover {
+    filter: invert(40%) sepia(79%) saturate(4615%) hue-rotate(165deg) brightness(94%) contrast(101%);
+}
+
+</style>

@@ -27,8 +27,9 @@
     cursor: pointer;
     border-radius: 6px;
     font-size: 16px;
-    margin: 8px;
     font-weight: bold;  
+    margin-bottom: 8px;
+    margin-top: 8px;
   }
   
   button:hover {
