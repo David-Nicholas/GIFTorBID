@@ -151,7 +151,6 @@ function formatKey(key) {
   justify-content: center;
   align-items: top;
   padding-top: 100px;
-  height: 100vh;
 }
 
 .content-container {
