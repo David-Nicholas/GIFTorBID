@@ -2,6 +2,7 @@
     <div class="main-container">
         <div class="content-container">
             <div class="info-container">
+                <p class="contact-form-header">Contact us</p>
                 <form @submit.prevent="handleSubmit">
                     <div class="form-group">
                         <label class="attribute-key" for="name">Name</label>
@@ -182,6 +183,13 @@ function closeValidationPopup() {
     margin-top: 16px;
     width: 100%;
 }
+
+.contact-form-header {
+    font-size: 24px; 
+    margin-bottom: 16px; 
+    text-align: center; 
+}
+
 
 @media (max-width: 768px) {
     .content-container {
