@@ -1,4 +1,5 @@
 <template>
+    <!-- Contact form -->
     <div class="main-container">
         <div class="content-container">
             <div class="info-container">
@@ -36,6 +37,7 @@
         </div>
     </div>
 
+    <!-- Missing form input popup -->
     <div v-if="isValidationPopupVisible" class="popup">
         <div class="popup-content">
             <p class="attribute-key">Please fill out all fields before submitting.</p>
@@ -43,12 +45,14 @@
         </div>
     </div>
 
+    <!-- From sent confirmation popup -->
     <div v-if="isPopupVisible" class="popup">
         <div class="popup-content">
             <p class="attribute-key">Thank you for reaching out! We will get back to you soon.</p>
             <CustomButton :buttonText="'Close'" class="custom-btn" @activate="closePopup" />
         </div>
     </div>
+
 </template>
 
 <script setup>
@@ -70,9 +74,11 @@ const form = ref({
 const isPopupVisible = ref(false);
 const isValidationPopupVisible = ref(false);
 
+//Send form
 async function handleSubmit() {
+    //All field compited
     if (!form.value.name || !form.value.email || !form.value.subject || !form.value.message) {
-        isValidationPopupVisible.value = true;
+        showValidationPopup();
         return;
     }
 
@@ -82,7 +88,7 @@ async function handleSubmit() {
         subject: form.value.subject,
         bodyText: form.value.message, 
     };
-
+    //API call send
     try {
         const response = await $fetch(`${config.contact_api_link}`, {
             method: 'POST',
@@ -90,7 +96,7 @@ async function handleSubmit() {
         });
 
         if (response) {
-            isPopupVisible.value = true;
+            showPopup();
             form.value = {
                 name: '',
                 email: '',
@@ -103,8 +109,17 @@ async function handleSubmit() {
     }
 }
 
+//Popups helpers
+function showPopup() {
+    isPopupVisible.value = true;
+}
+
 function closePopup() {
     isPopupVisible.value = false;
+}
+
+function showValidationPopup() {
+    isValidationPopupVisible.value = true;
 }
 
 function closeValidationPopup() {
