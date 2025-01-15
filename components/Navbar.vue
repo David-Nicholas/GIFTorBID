@@ -18,6 +18,7 @@
                 <NuxtLink to="/post" class="nav-btn" active-class="active-link">POST</NuxtLink>
                 <NuxtLink to="/aquisitions" class="nav-btn" active-class="active-link">ACQUISITIONS</NuxtLink>
                 <NuxtLink to="/account" class="nav-btn" active-class="active-link">ACCOUNT</NuxtLink>
+                <NuxtLink to="/support" class="nav-btn" active-class="active-link">SUPPORT</NuxtLink>
             </div>
 
         </div>
@@ -46,7 +47,6 @@ const toggleMenu = () => {
     justify-content: space-between;
     align-items: center;
     max-width: 100%;
-    margin-bottom: 15px;
 }
 
 .logo-burger-container {
