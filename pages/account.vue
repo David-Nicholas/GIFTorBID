@@ -295,8 +295,8 @@ function closeChangePopup() {
 .content-container {
   display: flex;
   width: 100%;
-  max-width: 1000px;
   justify-content: space-between;
+  width: calc(100% - 20px);
 }
 
 .left-column,
