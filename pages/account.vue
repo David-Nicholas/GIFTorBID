@@ -17,9 +17,7 @@
               <div v-for="(value, key) in filteredCustomAttributes()" :key="key">
                 <p class="attribute-key">{{ formatKey(key) }}</p>
                 <input v-model="customEditableAttributes[key]" type="text" class="attribute-input" 
-                :placeholder="getPlaceholderForCustomAttribute(key)"/>
-                <CustomButton :buttonText="'Change'" class="custom-btn"
-                  @activate="handleChangeCustomAttributes(key, customEditableAttributes[key])" />
+                  :placeholder="getPlaceholderForCustomAttribute(key)" />
               </div>
               <CustomButton :buttonText="'Change All'" class="custom-btn change-all-btn"
                 @activate="handleChangeAllCustomAttributes()" />
@@ -35,18 +33,9 @@
               <div v-for="(value, key) in filteredAttributes()" :key="key">
                 <p class="attribute-key">{{ formatKey(key) }}</p>
                 <input v-model="editableAttributes[key]" type="text" class="attribute-input" />
-                <CustomButton :buttonText="'Change'" class="custom-btn"
-                  @activate="handleChangeAttributes(key, editableAttributes[key])" />
               </div>
-            </div>
-
-            <!-- Delete account and support -->
-            <div class="info-container">
-              <p class="attribute-key">
-                Visiting the GIFTorBID support page will help you with any questions or problems you have. Some
-                issues may take longer to resolve because of legal or technical reasons.
-              </p>
-              <CustomButton :buttonText="'Support'" class="custom-btn" @activate="redirectTo('/support')" />
+              <CustomButton :buttonText="'Change All'" class="custom-btn change-all-btn"
+                @activate="handleChangeAllAttributes()" />
             </div>
 
             <div class="info-container">
@@ -89,7 +78,6 @@
 
   </div>
 </template>
-
 
 <script setup>
 import { Authenticator } from "@aws-amplify/ui-vue";
@@ -136,16 +124,20 @@ async function fetchAndSetAttributes() {
   }
 }
 
-async function handleChangeAttributes(key, inputValue) {
+async function handleChangeAllAttributes() {
   try {
+    const userAttributes = Object.keys(editableAttributes.value).reduce((acc, key) => {
+      acc[key] = editableAttributes.value[key];
+      return acc;
+    }, {});
+
     await updateUserAttributes({
-      userAttributes: {
-        [key]: inputValue,
-      },
+      userAttributes,
     });
+
     showChangePopup();
   } catch (error) {
-    console.error('Error updating user attribute:', error);
+    console.error('Error updating all default attributes:', error);
   }
 }
 
@@ -165,19 +157,6 @@ async function fetchAndSetCustomAttributes() {
     };
   } catch (error) {
     console.error('Error fetching custom user attributes:', error);
-  }
-}
-
-async function handleChangeCustomAttributes(key, inputValue) {
-  try {
-    await updateUserAttributes({
-      userAttributes: {
-        [key]: inputValue,
-      },
-    });
-    showChangePopup();
-  } catch (error) {
-    console.error('Error updating custom user attribute:', error);
   }
 }
 
@@ -220,7 +199,7 @@ watchEffect(() => {
   fetchAndSetCustomAttributes();
 });
 
-// Chnage attributes helpers
+// Helpers
 function filteredAttributes() {
   return editableAttributes.value || {};
 }
@@ -254,11 +233,10 @@ async function handleDeleteUser() {
   }
 }
 
-//Popups helpers
+// Popups helpers
 function showDeleteSuccessPopup() {
   isDeleteSuccessPopupVisible.value = true;
 }
-
 
 function closeDeleteSuccessPopup() {
   isDeleteSuccessPopupVisible.value = false;
@@ -283,7 +261,6 @@ function closeChangePopup() {
 }
 </script>
 
-
 <style scoped>
 .main-container {
   display: flex;
@@ -295,8 +272,8 @@ function closeChangePopup() {
 .content-container {
   display: flex;
   width: 100%;
-  max-width: 1000px;
   justify-content: space-between;
+  width: calc(100% - 20px);
 }
 
 .left-column,
@@ -382,3 +359,4 @@ function closeChangePopup() {
   }
 }
 </style>
+
