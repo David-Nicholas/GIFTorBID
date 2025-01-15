@@ -114,7 +114,6 @@ const toggleMenu = () => {
 
     .nav-links {
         display: none;
-        margin-bottom: 15px;
     }
 
     .nav-links.show-menu {
@@ -132,4 +131,3 @@ const toggleMenu = () => {
     }
 }
 </style>
-
