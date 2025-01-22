@@ -56,13 +56,15 @@
 </template>
 
 <script setup>
+definePageMeta({
+    colorMode: 'light',
+    layout: 'custom'
+
+});
+
 import { ref } from 'vue';
 
 const config = useRuntimeConfig().public;
-
-definePageMeta({
-    layout: 'custom'
-});
 
 const form = ref({
     name: '',

@@ -1,8 +1,21 @@
-// https://nuxt.com/docs/api/configuration/nuxt-config
+import { defineNuxtConfig } from "nuxt/config";
+import { createResolver } from "@nuxt/kit";
+const { resolve } = createResolver(import.meta.url);
 export default defineNuxtConfig({
   compatibilityDate: '2024-04-03',
+  app: {
+    pageTransition: { name: "page", mode: "out-in" },
+  },
   devtools: { enabled: true },
-  modules: ['@nuxtjs/tailwindcss'],
+  modules: ['@nuxt/ui',
+    "@nuxtjs/tailwindcss", 
+  ],
+  components: [
+    {
+      path: resolve("./components/"),
+      global: true,
+    },
+  ],
   runtimeConfig:{
     public:{
       deployment_url: process.env.DEPLOYMENT_URL,

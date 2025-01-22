@@ -3,3 +3,9 @@
       Hello world!
     </h1>
 </template>
+
+<script>
+definePageMeta({
+  colorMode: 'light',
+});
+</script>
