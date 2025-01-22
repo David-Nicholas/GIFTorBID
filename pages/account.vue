@@ -1,5 +1,9 @@
 <template>
-  <div class="main-container">
+  <div class="warn-container">
+  <WarnMessage v-if="showError"
+    description="Some data is missing to complete the sign-up. Please provide information in the empty fields below." />
+  </div>
+    <div class="main-container">
     <Authenticator :login-mechanisms="['email']"
       :sign-up-attributes="['phone_number', 'name', 'nickname', 'birthdate']">
       <template v-slot="{ signOut, user }">
@@ -16,7 +20,7 @@
               <p class="title-paragraph">Your Address</p>
               <div v-for="(value, key) in filteredCustomAttributes()" :key="key">
                 <p class="attribute-key">{{ formatKey(key) }}</p>
-                <input v-model="customEditableAttributes[key]" type="text" class="attribute-input" 
+                <input v-model="customEditableAttributes[key]" type="text" class="attribute-input"
                   :placeholder="getPlaceholderForCustomAttribute(key)" />
               </div>
               <CustomButton :buttonText="'Change All'" class="custom-btn change-all-btn"
@@ -80,12 +84,16 @@
 </template>
 
 <script setup>
+definePageMeta({
+  colorMode: 'light',
+});
 import { Authenticator } from "@aws-amplify/ui-vue";
 import "@aws-amplify/ui-vue/styles.css";
 import { ref, watchEffect } from 'vue';
-import { fetchUserAttributes, updateUserAttributes, deleteUser } from 'aws-amplify/auth';
+import { fetchUserAttributes, updateUserAttributes, deleteUser, fetchAuthSession } from 'aws-amplify/auth';
 import { useRouter } from 'vue-router';
 import { Hub } from 'aws-amplify/utils';
+import WarnMessage from "~/components/WarnMessage.vue";
 
 Hub.listen('auth', ({ payload }) => {
   switch (payload.event) {
@@ -111,14 +119,18 @@ const isDeletePopupVisible = ref(false);
 const isChangePopupVisible = ref(false);
 const isDeleteSuccessPopupVisible = ref(false);
 
+const showError = ref(false);
 // Default attributes
 async function fetchAndSetAttributes() {
   try {
-    const attributes = await fetchUserAttributes();
-    const filtered = Object.fromEntries(
-      Object.entries(attributes).filter(([key]) => allowedAttributes.includes(key))
-    );
-    editableAttributes.value = { ...filtered };
+    const session = await fetchAuthSession();
+    if (session && session.tokens) {
+      const attributes = await fetchUserAttributes();
+      const filtered = Object.fromEntries(
+        Object.entries(attributes).filter(([key]) => allowedAttributes.includes(key))
+      );
+      editableAttributes.value = { ...filtered };
+    }
   } catch (error) {
     console.error('Error fetching user attributes:', error);
   }
@@ -144,17 +156,22 @@ async function handleChangeAllAttributes() {
 // Custom attributes
 async function fetchAndSetCustomAttributes() {
   try {
-    const attributes = await fetchUserAttributes();
-    const filtered = Object.fromEntries(
-      Object.entries(attributes).filter(([key]) => customAttributes.includes(key))
-    );
+    const session = await fetchAuthSession();
+    if (session && session.tokens) {
+      const attributes = await fetchUserAttributes();
+      const filtered = Object.fromEntries(
+        Object.entries(attributes).filter(([key]) => customAttributes.includes(key))
+      );
 
-    customEditableAttributes.value = {
-      ...customAttributes.reduce((acc, key) => {
-        acc[key] = filtered[key] || '';
-        return acc;
-      }, {})
-    };
+      customEditableAttributes.value = {
+        ...customAttributes.reduce((acc, key) => {
+          acc[key] = filtered[key] || '';
+          return acc;
+        }, {})
+      };
+      const hasEmptyAttributes = Object.values(customEditableAttributes.value).some(value => !value);
+      showError.value = hasEmptyAttributes;
+    }
   } catch (error) {
     console.error('Error fetching custom user attributes:', error);
   }
@@ -163,7 +180,7 @@ async function fetchAndSetCustomAttributes() {
 async function handleChangeAllCustomAttributes() {
   try {
     const userAttributes = customAttributes.reduce((acc, key) => {
-      acc[key] = customEditableAttributes.value[key]; 
+      acc[key] = customEditableAttributes.value[key];
       return acc;
     }, {});
 
@@ -215,11 +232,11 @@ function filteredCustomAttributes() {
 
 function formatKey(key) {
   return key
-    .replace(/custom:/g, '')  
-    .replace(/-/g, ' ')   
-    .replace(/_/g, ' ')      
-    .toLowerCase()            
-    .replace(/^\w/, (c) => c.toUpperCase()); 
+    .replace(/custom:/g, '')
+    .replace(/-/g, ' ')
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/^\w/, (c) => c.toUpperCase());
 }
 
 // Delete account
@@ -262,6 +279,10 @@ function closeChangePopup() {
 </script>
 
 <style scoped>
+.warn-container {
+  display: flex; 
+  justify-content: center;
+}
 .main-container {
   display: flex;
   justify-content: center;
@@ -359,4 +380,3 @@ function closeChangePopup() {
   }
 }
 </style>
-

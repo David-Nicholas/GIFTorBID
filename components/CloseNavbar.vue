@@ -7,9 +7,9 @@
             </div>
 
             <div class="nav-links">
-                <NuxtLink to="/account" class="nav-btn" active-class="active-link"> 
+                <button @click="goBack" class="nav-btn">
                     <img src="https://api.iconify.design/material-symbols:close-rounded.svg" alt="Close" class="close-icon" />
-                </NuxtLink>
+                </button>
             </div>
 
         </div>
@@ -17,12 +17,24 @@
 </template>
 
 <script setup>
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
+
+const goBack = () => {
+    if (router.options.history.state.back) {
+        router.back();
+    } else {
+        router.push('/');
+    }
+};
 </script>
 
 <style scoped>
 .navbar {
     background-color: rgb(255, 255, 255);
     font-family: Arial, sans-serif;
+    border-bottom: 1px solid #000;
 }
 
 .navbar-container {
@@ -30,7 +42,6 @@
     justify-content: space-between;
     align-items: center;
     max-width: 100%;
-    margin-bottom: 15px;
 }
 
 .logo img {
@@ -49,6 +60,9 @@
     color: #000000;
     font-weight: 500;
     padding: 0px 5px;
+    background: none;
+    border: none;
+    cursor: pointer;
 }
 
 .nav-btn:hover {
@@ -67,5 +81,4 @@
 .close-icon:hover {
     filter: invert(40%) sepia(79%) saturate(4615%) hue-rotate(165deg) brightness(94%) contrast(101%);
 }
-
 </style>
