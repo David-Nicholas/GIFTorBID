@@ -1,11 +1,11 @@
 <template>
+  <div class="account-root">
   <div class="warn-container">
-  <WarnMessage v-if="showError"
-    description="Some data is missing to complete the sign-up. Please provide information in the empty fields below." />
+    <WarnMessage v-if="showError"
+      description="Some data is missing to complete the sign-up. Please provide information in the empty fields below." />
   </div>
-    <div class="main-container">
-    <Authenticator :login-mechanisms="['email']"
-      :sign-up-attributes="['phone_number', 'name', 'nickname', 'birthdate']">
+  <div class="main-container">
+    <Authenticator :login-mechanisms="['email']" :sign-up-attributes="['phone_number', 'name', 'birthdate']">
       <template v-slot="{ signOut, user }">
         <div class="content-container">
           <div class="left-column">
@@ -15,31 +15,58 @@
               <CustomButton :buttonText="'Sign out'" class="custom-btn" @activate="signOut" />
             </div>
 
-            <!-- Custom attributes section -->
+            <!-- Custom modifiable attributes section -->
             <div class="info-container">
               <p class="title-paragraph">Your Address</p>
-              <div v-for="(value, key) in filteredCustomAttributes()" :key="key">
+              <div v-for="(value, key) in filteredModifiableCustomAttributes()" :key="key">
                 <p class="attribute-key">{{ formatKey(key) }}</p>
                 <input v-model="customEditableAttributes[key]" type="text" class="attribute-input"
                   :placeholder="getPlaceholderForCustomAttribute(key)" />
               </div>
-              <CustomButton :buttonText="'Change All'" class="custom-btn change-all-btn"
+              <CustomButton :buttonText="'Change'" class="custom-btn change-all-btn"
                 @activate="handleChangeAllCustomAttributes()" />
+            </div>
+
+            <!-- Custom non-modifiable attributes section -->
+            <div class="info-container">
+              <p class="title-paragraph">Your Stats</p>
+              <div class="custom-non-modifiable-columns">
+                <div v-for="(value, key) in filteredNonModifiableCustomAttributes()" :key="key"
+                  class="custom-attribute-column">
+                  <p class="custom-attribute-key">{{ formatKey(key) }}</p>
+                  <div class="custom-attribute-box">
+                    <NuxtLink to="/post">{{ value || '0' }}</NuxtLink>
+                  </div>
+                </div>
+              </div>
             </div>
 
           </div>
 
           <div class="right-column">
 
-            <!-- Default attributes section -->
+            <!-- Default modifiable attributes section -->
             <div class="info-container">
-              <p class="title-paragraph">Your Informations</p>
-              <div v-for="(value, key) in filteredAttributes()" :key="key">
+              <p class="title-paragraph">Your Displayable Informations</p>
+              <div v-for="(value, key) in filteredModifiableAttributes()" :key="key">
                 <p class="attribute-key">{{ formatKey(key) }}</p>
                 <input v-model="editableAttributes[key]" type="text" class="attribute-input" />
               </div>
-              <CustomButton :buttonText="'Change All'" class="custom-btn change-all-btn"
+              <CustomButton :buttonText="'Change'" class="custom-btn change-all-btn"
                 @activate="handleChangeAllAttributes()" />
+            </div>
+
+            <!-- Default non-modifiable attributes section -->
+            <div class="info-container">
+              <p class="title-paragraph">Your Account Informations</p>
+              <div v-for="(value, key) in filteredNonModifiableAttributes()" :key="key">
+                <p class="attribute-key">{{ formatKey(key) }}</p>
+                <input v-model="nonEditableAttributes[key]" type="text" class="attribute-input" readonly />
+              </div>
+              <p class="info-message">
+                Note: These details can only be updated by contacting our support team. Please reach out to support if
+                you need to make any changes.
+              </p>
             </div>
 
             <div class="info-container">
@@ -81,12 +108,14 @@
     </div>
 
   </div>
+</div>
 </template>
 
 <script setup>
 definePageMeta({
   colorMode: 'light',
 });
+
 import { Authenticator } from "@aws-amplify/ui-vue";
 import "@aws-amplify/ui-vue/styles.css";
 import { ref, watchEffect } from 'vue';
@@ -109,25 +138,29 @@ const redirectTo = (page) => {
   router.push(page);
 };
 
-const allowedAttributes = ['phone_number', 'nickname', 'name'];
-const customAttributes = ['custom:country', 'custom:region', 'custom:city', 'custom:street-address', 'custom:postal-code'];
+const defaultModifiableAttributes = ['phone_number', 'name'];
+const defaultNonModifiableAttributes = ['email', 'birthdate'];
+const customModifiableAttributes = ['custom:country', 'custom:region', 'custom:city', 'custom:street-address', 'custom:postal-code'];
+const customNonModifiableAttributes = ['custom:rating', 'custom:posts'];
 
 const editableAttributes = ref({});
+const nonEditableAttributes = ref({});
 const customEditableAttributes = ref({});
+const customNonEditableAttributes = ref({});
 
 const isDeletePopupVisible = ref(false);
 const isChangePopupVisible = ref(false);
 const isDeleteSuccessPopupVisible = ref(false);
 
 const showError = ref(false);
-// Default attributes
-async function fetchAndSetAttributes() {
+// Default modifiable attributes
+async function fetchAndSetModifiableAttributes() {
   try {
     const session = await fetchAuthSession();
     if (session && session.tokens) {
       const attributes = await fetchUserAttributes();
       const filtered = Object.fromEntries(
-        Object.entries(attributes).filter(([key]) => allowedAttributes.includes(key))
+        Object.entries(attributes).filter(([key]) => defaultModifiableAttributes.includes(key))
       );
       editableAttributes.value = { ...filtered };
     }
@@ -153,18 +186,34 @@ async function handleChangeAllAttributes() {
   }
 }
 
-// Custom attributes
-async function fetchAndSetCustomAttributes() {
+// Default non-modifiable attributes
+async function fetchAndSetNonModifiableAttributes() {
   try {
     const session = await fetchAuthSession();
     if (session && session.tokens) {
       const attributes = await fetchUserAttributes();
       const filtered = Object.fromEntries(
-        Object.entries(attributes).filter(([key]) => customAttributes.includes(key))
+        Object.entries(attributes).filter(([key]) => defaultNonModifiableAttributes.includes(key))
+      );
+      nonEditableAttributes.value = { ...filtered };
+    }
+  } catch (error) {
+    console.error('Error fetching user attributes:', error);
+  }
+}
+
+// Custom modifiable attributes
+async function fetchAndSetModifiableCustomAttributes() {
+  try {
+    const session = await fetchAuthSession();
+    if (session && session.tokens) {
+      const attributes = await fetchUserAttributes();
+      const filtered = Object.fromEntries(
+        Object.entries(attributes).filter(([key]) => customModifiableAttributes.includes(key))
       );
 
       customEditableAttributes.value = {
-        ...customAttributes.reduce((acc, key) => {
+        ...customModifiableAttributes.reduce((acc, key) => {
           acc[key] = filtered[key] || '';
           return acc;
         }, {})
@@ -179,7 +228,7 @@ async function fetchAndSetCustomAttributes() {
 
 async function handleChangeAllCustomAttributes() {
   try {
-    const userAttributes = customAttributes.reduce((acc, key) => {
+    const userAttributes = customModifiableAttributes.reduce((acc, key) => {
       acc[key] = customEditableAttributes.value[key];
       return acc;
     }, {});
@@ -191,6 +240,28 @@ async function handleChangeAllCustomAttributes() {
     showChangePopup();
   } catch (error) {
     console.error('Error updating all custom attributes:', error);
+  }
+}
+
+// Custom non-modifiable attributes
+async function fetchAndSetNonModifiableCustomAttributes() {
+  try {
+    const session = await fetchAuthSession();
+    if (session && session.tokens) {
+      const attributes = await fetchUserAttributes();
+      const filtered = Object.fromEntries(
+        Object.entries(attributes).filter(([key]) => customNonModifiableAttributes.includes(key))
+      );
+
+      customNonEditableAttributes.value = {
+        ...customNonModifiableAttributes.reduce((acc, key) => {
+          acc[key] = filtered[key] || '';
+          return acc;
+        }, {})
+      };
+    }
+  } catch (error) {
+    console.error('Error fetching custom user attributes:', error);
   }
 }
 
@@ -206,25 +277,44 @@ function getPlaceholderForCustomAttribute(key) {
       return 'Street, number, floor, apartment';
     case 'custom:postal-code':
       return 'Enter your postal code';
+    case 'custom:posts':
+      return '0';
+    case 'custom:rating':
+      return '0';
     default:
       return 'Enter value';
   }
 }
 
 watchEffect(() => {
-  fetchAndSetAttributes();
-  fetchAndSetCustomAttributes();
+  fetchAndSetModifiableAttributes();
+  fetchAndSetNonModifiableAttributes();
+  fetchAndSetModifiableCustomAttributes();
+  fetchAndSetNonModifiableCustomAttributes();
 });
 
 // Helpers
-function filteredAttributes() {
+function filteredModifiableAttributes() {
   return editableAttributes.value || {};
 }
 
-function filteredCustomAttributes() {
+function filteredNonModifiableAttributes() {
+  return nonEditableAttributes.value || {};
+}
+
+function filteredModifiableCustomAttributes() {
   return {
-    ...customAttributes.reduce((acc, key) => {
+    ...customModifiableAttributes.reduce((acc, key) => {
       acc[key] = customEditableAttributes.value[key] || '';
+      return acc;
+    }, {})
+  };
+}
+
+function filteredNonModifiableCustomAttributes() {
+  return {
+    ...customNonModifiableAttributes.reduce((acc, key) => {
+      acc[key] = customNonEditableAttributes.value[key] || '';
       return acc;
     }, {})
   };
@@ -273,16 +363,19 @@ function showChangePopup() {
 
 function closeChangePopup() {
   isChangePopupVisible.value = false;
-  fetchAndSetAttributes();
-  fetchAndSetCustomAttributes();
+  fetchAndSetModifiableAttributes();
+  fetchAndSetNonModifiableAttributes();
+  fetchAndSetModifiableCustomAttributes();
+  fetchAndSetNonModifiableCustomAttributes();
 }
 </script>
 
 <style scoped>
 .warn-container {
-  display: flex; 
+  display: flex;
   justify-content: center;
 }
+
 .main-container {
   display: flex;
   justify-content: center;
@@ -362,6 +455,45 @@ function closeChangePopup() {
 .popup .custom-btn {
   margin-top: 16px;
   width: 100%;
+}
+
+.custom-non-modifiable-columns {
+  display: flex;
+  flex-wrap: wrap; 
+  justify-content: center; 
+  align-items: center; 
+  gap: 100px
+}
+
+.custom-attribute-column {
+  display: flex;
+  flex-direction: column; 
+  align-items: center; 
+  justify-content: center; 
+  text-align: center;
+}
+
+.custom-attribute-key {
+  margin-bottom: 4px;
+  font-size: 16px;
+}
+
+.custom-attribute-box {
+  display: flex;
+  justify-content: center; 
+  align-items: center; 
+  width: 80px;
+  height: 80px;
+  border: 1.5px solid #000; 
+  font-size: 60px;
+  text-align: center;
+  line-height: normal; 
+  margin-bottom: 8px;
+}
+
+.custom-attribute-box:hover {
+  color: #2596be; 
+  border-color: #2596be;
 }
 
 @media (max-width: 768px) {
