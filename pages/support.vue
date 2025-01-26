@@ -1,59 +1,61 @@
 <template>
-    <!-- Contact form -->
-    <div class="main-container">
+    <div class="support-root">
+      <!-- Contact form -->
+      <div class="main-container">
         <div class="content-container">
-            <div class="info-container">
-                <p class="contact-form-header">Contact us</p>
-                <form @submit.prevent="handleSubmit">
-                    <div class="form-group">
-                        <label class="attribute-key" for="name">Name</label>
-                        <input v-model="form.name" type="text" id="name" placeholder="Enter your name"
-                            class="attribute-input"/>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="attribute-key" for="email">Email</label>
-                        <input v-model="form.email" type="email" id="email" placeholder="Enter your email"
-                            class="attribute-input" />
-                    </div>
-
-                    <div class="form-group">
-                        <label class="attribute-key" for="subject">Subject</label>
-                        <input v-model="form.subject" type="text" id="subject" placeholder="Enter the subject"
-                            class="attribute-input"/>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="attribute-key" for="message">Message</label>
-                        <textarea v-model="form.message" id="message" placeholder="Enter your message" rows="6"
-                            class="attribute-input"></textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <CustomButton :buttonText="'Submit'" class="custom-btn" @activate="handleSubmit" />
-                    </div>
-                </form>
-            </div>
+          <div class="info-container">
+            <p class="contact-form-header">Contact us</p>
+            <form @submit.prevent="handleSubmit">
+              <div class="form-group">
+                <label class="attribute-key" for="name">Name</label>
+                <input v-model="form.name" type="text" id="name" placeholder="Enter your name"
+                  class="attribute-input" />
+              </div>
+  
+              <div class="form-group">
+                <label class="attribute-key" for="email">Email</label>
+                <input v-model="form.email" type="email" id="email" placeholder="Enter your email"
+                  class="attribute-input" />
+              </div>
+  
+              <div class="form-group">
+                <label class="attribute-key" for="subject">Subject</label>
+                <input v-model="form.subject" type="text" id="subject" placeholder="Enter the subject"
+                  class="attribute-input" />
+              </div>
+  
+              <div class="form-group">
+                <label class="attribute-key" for="message">Message</label>
+                <textarea v-model="form.message" id="message" placeholder="Enter your message" rows="6"
+                  class="attribute-input"></textarea>
+              </div>
+  
+              <div class="form-group">
+                <CustomButton :buttonText="'Submit'" class="custom-btn" @activate="handleSubmit" />
+              </div>
+            </form>
+          </div>
         </div>
-    </div>
-
-    <!-- Missing form input popup -->
-    <div v-if="isValidationPopupVisible" class="popup">
+      </div>
+  
+      <!-- Missing form input popup -->
+      <div v-if="isValidationPopupVisible" class="popup">
         <div class="popup-content">
-            <p class="attribute-key">Please fill out all fields before submitting.</p>
-            <CustomButton :buttonText="'Close'" class="custom-btn" @activate="closeValidationPopup" />
+          <p class="attribute-key">Please fill out all fields before submitting.</p>
+          <CustomButton :buttonText="'Close'" class="custom-btn" @activate="closeValidationPopup" />
         </div>
-    </div>
-
-    <!-- From sent confirmation popup -->
-    <div v-if="isPopupVisible" class="popup">
+      </div>
+  
+      <!-- Form sent confirmation popup -->
+      <div v-if="isPopupVisible" class="popup">
         <div class="popup-content">
-            <p class="attribute-key">Thank you for reaching out! We will get back to you soon.</p>
-            <CustomButton :buttonText="'Close'" class="custom-btn" @activate="closePopup" />
+          <p class="attribute-key">Thank you for reaching out! We will get back to you soon.</p>
+          <CustomButton :buttonText="'Close'" class="custom-btn" @activate="closePopup" />
         </div>
+      </div>
     </div>
-
-</template>
+  </template>
+  
 
 <script setup>
 definePageMeta({
