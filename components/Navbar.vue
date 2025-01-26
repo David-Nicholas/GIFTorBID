@@ -82,7 +82,8 @@ const toggleMenu = () => {
 
 .nav-links {
     display: flex;
-    gap: 7.5px;
+    gap: 8px;
+    margin-bottom: 16px;
 }
 
 .nav-links.show-menu {

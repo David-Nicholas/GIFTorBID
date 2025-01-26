@@ -8,26 +8,22 @@
             <form @submit.prevent="handleSubmit">
               <div class="form-group">
                 <label class="attribute-key" for="name">Name</label>
-                <input v-model="form.name" type="text" id="name" placeholder="Enter your name"
-                  class="attribute-input" />
+                <input v-model="form.name" type="text" id="name" placeholder="Enter your name" class="attribute-input" />
               </div>
   
               <div class="form-group">
                 <label class="attribute-key" for="email">Email</label>
-                <input v-model="form.email" type="email" id="email" placeholder="Enter your email"
-                  class="attribute-input" />
+                <input v-model="form.email" type="email" id="email" placeholder="Enter your email" class="attribute-input" />
               </div>
   
               <div class="form-group">
                 <label class="attribute-key" for="subject">Subject</label>
-                <input v-model="form.subject" type="text" id="subject" placeholder="Enter the subject"
-                  class="attribute-input" />
+                <input v-model="form.subject" type="text" id="subject" placeholder="Enter the subject" class="attribute-input" />
               </div>
   
               <div class="form-group">
                 <label class="attribute-key" for="message">Message</label>
-                <textarea v-model="form.message" id="message" placeholder="Enter your message" rows="6"
-                  class="attribute-input"></textarea>
+                <textarea v-model="form.message" id="message" placeholder="Enter your message" rows="6" class="attribute-input"></textarea>
               </div>
   
               <div class="form-group">
@@ -56,80 +52,106 @@
     </div>
   </template>
   
-
-<script setup>
-definePageMeta({
+  <script setup>
+  definePageMeta({
     colorMode: 'light',
-    layout: 'custom'
-
-});
-
-import { ref } from 'vue';
-
-const config = useRuntimeConfig().public;
-
-const form = ref({
+    layout: 'custom',
+  });
+  
+  import { ref, onMounted } from 'vue';
+  import { fetchUserAttributes, fetchAuthSession } from 'aws-amplify/auth';
+  
+  const config = useRuntimeConfig().public;
+  
+  const form = ref({
     name: '',
     email: '',
-    subject: '', 
+    subject: '',
     message: '',
-});
-
-const isPopupVisible = ref(false);
-const isValidationPopupVisible = ref(false);
-
-//Send form
-async function handleSubmit() {
-    //All field compited
-    if (!form.value.name || !form.value.email || !form.value.subject || !form.value.message) {
-        showValidationPopup();
-        return;
-    }
-
-    const payload = {
-        name: form.value.name,
-        email: form.value.email,
-        subject: form.value.subject,
-        bodyText: form.value.message, 
-    };
-    //API call send
+  });
+  
+  const isPopupVisible = ref(false);
+  const isValidationPopupVisible = ref(false);
+  
+  const defaultNonModifiableAttributes = ['email', 'name'];
+  const nonEditableAttributes = ref({});
+  
+  // Fetch user attributes and autofill the form fields
+  async function fetchAndSetUserAttributes() {
     try {
-        const response = await $fetch(`${config.contact_api_link}`, {
-            method: 'POST',
-            body: payload,
-        });
-
-        if (response) {
-            showPopup();
-            form.value = {
-                name: '',
-                email: '',
-                subject: '',
-                message: '',
-            };
-        }
+      const session = await fetchAuthSession();
+      if (session && session.tokens) {
+        const attributes = await fetchUserAttributes();
+        const filtered = Object.fromEntries(
+          Object.entries(attributes).filter(([key]) => defaultNonModifiableAttributes.includes(key))
+        );
+        form.value.name = filtered.name || '';
+        form.value.email = filtered.email || '';
+      }
     } catch (error) {
-        console.error('An error occurred while submitting the form:', error);
+      console.error('Error fetching user attributes:', error);
     }
-}
-
-//Popups helpers
-function showPopup() {
+  }
+  
+  // Send form
+  async function handleSubmit() {
+    if (!form.value.name || !form.value.email || !form.value.subject || !form.value.message) {
+      showValidationPopup();
+      return;
+    }
+  
+    const payload = {
+      name: form.value.name,
+      email: form.value.email,
+      subject: form.value.subject,
+      bodyText: form.value.message,
+    };
+  
+    try {
+      const response = await $fetch(`${config.contact_api_link}`, {
+        method: 'POST',
+        body: payload,
+      });
+  
+      if (response) {
+        showPopup();
+        form.value = {
+          name: '',
+          email: '',
+          subject: '',
+          message: '',
+        };
+      }
+    } catch (error) {
+      console.error('An error occurred while submitting the form:', error);
+    }
+  }
+  
+  // Popups helpers
+  function showPopup() {
     isPopupVisible.value = true;
-}
-
-function closePopup() {
+  }
+  
+  function closePopup() {
     isPopupVisible.value = false;
-}
-
-function showValidationPopup() {
+  }
+  
+  function showValidationPopup() {
     isValidationPopupVisible.value = true;
-}
-
-function closeValidationPopup() {
+  }
+  
+  function closeValidationPopup() {
     isValidationPopupVisible.value = false;
-}
-</script>
+  }
+  
+  // Load user attributes on component mount
+  onMounted(fetchAndSetUserAttributes);
+  </script>
+  
+  <style scoped>
+  /* (Existing CSS styles remain unchanged) */
+  </style>
+  
 
 <style scoped>
 .main-container {
