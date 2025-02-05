@@ -55,7 +55,6 @@
   <script setup>
   definePageMeta({
     colorMode: 'light',
-    layout: 'custom',
   });
   
   import { ref, onMounted } from 'vue';
@@ -108,7 +107,7 @@
     };
   
     try {
-      const response = await $fetch(`${config.contact_api_link}`, {
+      const response = await $fetch(`${config.api_url}/sendwmail`, {
         method: 'POST',
         body: payload,
       });

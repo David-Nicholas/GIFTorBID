@@ -14,9 +14,9 @@
             </div>
 
             <div class="nav-links" :class="{ 'show-menu': isMenuOpen }">
-                <NuxtLink to="/" class="nav-btn" active-class="active-link">EXPLORE</NuxtLink>
+                <NuxtLink to="/donations" class="nav-btn" active-class="active-link">DONATIONS</NuxtLink>
+                <NuxtLink to="/auctions" class="nav-btn" active-class="active-link">AUCTIONS</NuxtLink>
                 <NuxtLink to="/post" class="nav-btn" active-class="active-link">POST</NuxtLink>
-                <NuxtLink to="/aquisitions" class="nav-btn" active-class="active-link">ACQUISITIONS</NuxtLink>
                 <NuxtLink to="/account" class="nav-btn" active-class="active-link">ACCOUNT</NuxtLink>
                 <NuxtLink to="/support" class="nav-btn" active-class="active-link">SUPPORT</NuxtLink>
             </div>
@@ -83,7 +83,6 @@ const toggleMenu = () => {
 .nav-links {
     display: flex;
     gap: 8px;
-    margin-bottom: 16px;
 }
 
 .nav-links.show-menu {

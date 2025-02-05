@@ -35,7 +35,7 @@
                   class="custom-attribute-column">
                   <p class="custom-attribute-key">{{ formatKey(key) }}</p>
                   <div class="custom-attribute-box">
-                    <NuxtLink to="/post">{{ value || '0' }}</NuxtLink>
+                    <NuxtLink to="/posts">{{ value || '0' }}</NuxtLink>
                   </div>
                 </div>
               </div>
@@ -61,7 +61,7 @@
               <p class="title-paragraph">Your Account Informations</p>
               <div v-for="(value, key) in filteredNonModifiableAttributes()" :key="key">
                 <p class="attribute-key">{{ formatKey(key) }}</p>
-                <input v-model="nonEditableAttributes[key]" type="text" class="attribute-input" readonly />
+                <input v-model="nonEditableAttributes[key]" type="text" class="attribute-input" disabled />
               </div>
               <p class="info-message">
                 Note: These details can only be updated by contacting our support team. Please reach out to support if
