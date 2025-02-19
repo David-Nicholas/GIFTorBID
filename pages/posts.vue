@@ -15,8 +15,11 @@
         </div>
 
         <div v-else class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3">
-            <ListingCard v-for="listing in listings" :key="listing.objectID" :title="listing.objectName"
-                :images="listing.images" :type="listing.type" @showMore="goToDetails(listing.objectID)" />
+            <ListingCard 
+                v-for="listing in listings" 
+                :key="listing.objectID" 
+                :listing="listing"
+            />
         </div>
     </div>
 </template>
@@ -61,10 +64,6 @@ async function fetchListings() {
     } finally {
         isLoading.value = false;
     }
-}
-
-function goToDetails(objectID) {
-    console.log("Navigating to details for:", objectID);
 }
 
 onMounted(fetchListings);

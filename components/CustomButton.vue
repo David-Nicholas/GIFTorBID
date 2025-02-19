@@ -20,7 +20,6 @@
   
   <style scoped>
   button {
-    border: 2px solid #2596be;
     background-color: #2596be;
     color: white;
     padding: 8px 16px;
