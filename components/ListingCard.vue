@@ -5,42 +5,49 @@
         </div>
 
         <div class="info-section">
-            <h2 class="listing-title">{{ title }}</h2>
-            <p class="listing-type">{{ type.toUpperCase() }}</p>
+            <h2 class="listing-title">{{ listing.objectName }}</h2>
+            <p class="listing-type">{{ listing.type.toUpperCase() }}</p>
         </div>
 
         <div class="action-section">
-            <button class="show-more-btn" :style="{ backgroundColor: buttonColor }" @click="$emit('showMore')">
+            <button class="show-more-btn" :style="{ backgroundColor: buttonColor }" @click="goToEditPage">
                 Show More
             </button>
         </div>
     </div>
 </template>
 
+
 <script setup>
 import { computed } from 'vue';
+import { useState } from "#app";
+import { useRouter } from "vue-router";
 
 const props = defineProps({
-    title: String,
-    images: Array,
-    type: String,
+    listing: Object,
 });
 
-// Replace all images with dummy placeholders
+const selectedListing = useState("selectedListing"); // Create global state
+const router = useRouter();
+
+function goToEditPage() {
+    selectedListing.value = props.listing; // Store the listing globally
+    router.push(`/edit/${props.listing.objectID}`); // Navigate
+}
+
 const firstImage = computed(() => {
     return `https://picsum.photos/300/200?random=${Math.floor(Math.random() * 1000)}`;
 });
 
 // Get the first image from the list or use a placeholder if none exists
 // const firstImage = computed(() => {
-//   return props.images.length > 0 
-//     ? props.images[0] 
+//   return props.listing.images.length > 0
+//     ? props.listing.images[0] 
 //     : "https://picsum.photos/400/200?random=1"; // Placeholder if no image exists
 // });
 
-// Determine button color based on listing type
 const buttonColor = computed(() => {
-    return props.type === "auction" ? "#EBA92E" : "#35A45F";
+    return props.listing.type === "auction" ? "#EBA92E" : "#35A45F";
 });
 </script>
 
