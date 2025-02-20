@@ -99,10 +99,12 @@ definePageMeta({
 import { useState } from "#app";
 import { useRouter } from "vue-router";
 import { ref, computed } from 'vue';
+import { fetchUserAttributes, updateUserAttributes } from 'aws-amplify/auth';
 
 const router = useRouter();
 const selectedListing = useState("selectedListing");
 const config = useRuntimeConfig().public;
+const userPosts = ref(0);
 
 if (!selectedListing.value) {
     console.error("No listing found in state. Redirecting...");
@@ -137,6 +139,16 @@ const bids = computed(() => {
     return [];
 });
 
+
+async function fetchAndSetUserAttributes() {
+  try {
+    const attributes = await fetchUserAttributes();
+    userPosts.value = attributes["custom:posts"] ? parseInt(attributes["custom:posts"], 10) : 0;
+  } catch (error) {
+    console.error('Error fetching user attributes:', error);
+  }
+}
+
 async function deleteListingTrigger() {
     try {
         const response = await fetch(`${config.api_url}/object`, {
@@ -156,6 +168,8 @@ async function deleteListingTrigger() {
         }
 
         console.log("Listing deleted successfully");
+        const newPostCount = userPosts.value ? parseInt(userPosts.value, 10) - 1 : 1;
+        await updateUserAttributes({ userAttributes: { "custom:posts": newPostCount.toString() }});
         router.push("/posts");
     } catch (error) {
         console.error("Error deleting listing:", error);
@@ -218,7 +232,7 @@ function confirmDeletion() {
 function cancelDeletion() {
     isDeletionConfirmationVisible.value = false;
 }
-
+onMounted(fetchAndSetUserAttributes);
 </script>
 
 <style scoped>
