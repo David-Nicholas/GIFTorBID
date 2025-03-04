@@ -27,12 +27,12 @@ const props = defineProps({
     listing: Object,
 });
 
-const selectedListing = useState("selectedListing"); // Create global state
+const selectedListing = useState("selectedListing");
 const router = useRouter();
 
 function goToEditPage() {
-    selectedListing.value = props.listing; // Store the listing globally
-    router.push(`/edit/${props.listing.objectID}`); // Navigate
+    selectedListing.value = props.listing;
+    router.push(`/edit/${props.listing.objectID}`);
 }
 
 const firstImage = computed(() => {
