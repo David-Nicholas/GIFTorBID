@@ -26,12 +26,8 @@
             <div v-if="form.type === 'auction'" class="auction-duration">
               <label class="attribute-key">Auction Duration</label>
               <div class="tabs-container">
-                <div
-                  v-for="duration in durations"
-                  :key="duration"
-                  :class="['tab', { active: selectedDuration === duration }]"
-                  @click="selectedDuration = duration"
-                >
+                <div v-for="duration in durations" :key="duration"
+                  :class="['tab', { active: selectedDuration === duration }]" @click="selectedDuration = duration">
                   {{ duration }} days
                 </div>
               </div>
@@ -88,7 +84,7 @@
     <!-- Confirmation Popup for Donations -->
     <div v-if="isDonationConfirmationVisible" class="popup">
       <div class="popup-content">
-        <p class="attribute-key">Are you sure you want to donate this item? This action cannot be undone.</p>
+        <p class="attribute-key">Are you sure you want to donate this item?</p>
         <CustomButton :buttonText="'Yes, Confirm'" class="custom-btn" @activate="confirmDonation" />
         <CustomButton :buttonText="'Cancel'" class="custom-btn cancel-btn" @activate="cancelDonation" />
       </div>
@@ -110,7 +106,7 @@ definePageMeta({
 });
 
 import { ref, onMounted } from 'vue';
-import { fetchUserAttributes, updateUserAttributes } from 'aws-amplify/auth';
+import { fetchUserAttributes, updateUserAttributes, fetchAuthSession } from 'aws-amplify/auth';
 
 const config = useRuntimeConfig().public;
 const categories = [
@@ -191,7 +187,7 @@ function compressImage(base64Str, callback) {
     canvas.width = maxWidth;
     canvas.height = img.height * scaleSize;
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    callback(canvas.toDataURL('image/jpeg', 0.7)); // Adjust quality as needed
+    callback(canvas.toDataURL('image/jpeg', 0.7));
   };
 }
 
@@ -224,22 +220,25 @@ function cancelDonation() {
 async function submitListing() {
   isSubmitting.value = true;
   try {
+    const session = await fetchAuthSession();
+    const token = session.tokens.idToken.toString();
+    console.log(token);
     const listingData = { ...form.value };
 
     if (form.value.type === 'auction') {
       listingData.duration = selectedDuration.value;
     }
 
-    const response = await fetch(`${config.api_url}/object`, {
+    const response = await fetch(`${config.api_url}/listing`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify({ body: JSON.stringify(listingData) })
     });
 
     if (!response.ok) throw new Error('Failed to submit listing');
 
     const newPostCount = userPosts.value ? parseInt(userPosts.value, 10) + 1 : 1;
-    await updateUserAttributes({ userAttributes: { "custom:posts": newPostCount.toString() }});
+    await updateUserAttributes({ userAttributes: { "custom:posts": newPostCount.toString() } });
 
     showPopup();
     form.value = { objectName: '', type: '', category: '', description: '', sellerEmail: form.value.sellerEmail, images: [] };
@@ -430,5 +429,3 @@ onMounted(fetchAndSetUserAttributes);
   }
 }
 </style>
-
-

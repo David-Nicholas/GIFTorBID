@@ -1,7 +1,11 @@
 <template>
     <div class="posts-container">
         <h1 class="text-3xl font-bold text-center mb-6">My Listings</h1>
-
+        <div class="post-btn-container">
+            <NuxtLink to="/post" active-class="active-link">
+                <CustomButton :buttonText="'Post'" class="custom-btn" />
+            </NuxtLink>
+        </div>
         <div v-if="isLoading" class="loading-container">
             <p>Loading your listings...</p>
         </div>
@@ -11,15 +15,10 @@
             <div class="image-container">
                 <img src="../assets/image.png" alt="mascot">
             </div>
-            <NuxtLink to="/post" active-class="active-link"><CustomButton :buttonText="'Post'" class="custom-btn"/></NuxtLink>
         </div>
 
         <div v-else class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3">
-            <ListingCard 
-                v-for="listing in listings" 
-                :key="listing.objectID" 
-                :listing="listing"
-            />
+            <EditCard v-for="listing in listings" :key="listing.objectID" :listing="listing" />
         </div>
     </div>
 </template>
@@ -32,7 +31,7 @@ definePageMeta({
 
 import { ref, onMounted } from 'vue';
 import { fetchUserAttributes } from 'aws-amplify/auth';
-import ListingCard from '@/components/ListingCard.vue';
+import EditCard from '@/components/EditCard.vue';
 
 const config = useRuntimeConfig().public;
 const listings = ref([]);
@@ -75,6 +74,10 @@ onMounted(fetchListings);
     align-self: center;
     width: 50%;
     height: 50%;
+}
+
+.post-btn-container {
+    margin-bottom: 40px;
 }
 
 .posts-container {
