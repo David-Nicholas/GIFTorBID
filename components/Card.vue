@@ -5,8 +5,8 @@
         </div>
 
         <div class="info-section">
-            <h2 class="listing-title">{{ listing.objectName }}</h2>
-            <p class="listing-type">{{ redeemed == false ? "Item not redeemed yet" : "Item redeemed already" }}</p>
+            <h2 class="listing-title">{{ listing.name }}</h2>
+            <p class="listing-type">{{ listing.status.toUpperCase() }}</p>
         </div>
 
         <div class="action-section">
@@ -33,32 +33,23 @@ const redeemed = ref(false);
 
 function goToEditPage() {
     selectedListing.value = props.listing;
-    router.push(`/donation/${props.listing.objectID}`);
+    router.push(`/${props.listing.type}s/${props.listing.listingID}`);
 }
 
 const firstImage = computed(() => {
-    return `https://picsum.photos/300/200?random=${Math.floor(Math.random() * 1000)}`;
+    return `https://upload.wikimedia.org/wikipedia/commons/a/a3/Image-not-found.png?20210521171500`;
 });
 
 // Get the first image from the list or use a placeholder if none exists
 // const firstImage = computed(() => {
 //   return props.listing.images.length > 0
 //     ? props.listing.images[0] 
-//     : "https://picsum.photos/400/200?random=1"; // Placeholder if no image exists
+//     : "https://upload.wikimedia.org/wikipedia/commons/a/a3/Image-not-found.png?20210521171500"; // Placeholder if no image exists
 // });
 
 const buttonColor = computed(() => {
     return props.listing.type === "auction" ? "#EBA92E" : "#35A45F";
 });
-
-function checkRedeemed() {
-    if (!props.listing.winnerEmail.trim()) {
-        redeemed.value = false;
-    } else {
-        redeemed.value = true;
-    }
-}
-onMounted(checkRedeemed);
 </script>
 
 <style scoped>

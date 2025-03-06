@@ -5,16 +5,11 @@
     <div class="filter-container">
       <h2 class="filter-title">Filter by Category:</h2>
       <div class="filter-buttons">
-        <button 
-          v-for="category in categories" 
-          :key="category" 
-          @click="toggleCategory(category)"
+        <button v-for="category in categories" :key="category" @click="toggleCategory(category)"
           :class="{ 'active-filter': selectedCategories.includes(category) }">
           {{ category }}
         </button>
-        <button 
-          @click="resetCategoryFilter"
-          :class="{ 'active-filter': selectedCategories.length === 0 }">
+        <button @click="resetCategoryFilter" :class="{ 'active-filter': selectedCategories.length === 0 }">
           All
         </button>
       </div>
@@ -23,19 +18,14 @@
     <div class="filter-container">
       <h2 class="filter-title">Filter by Status:</h2>
       <div class="filter-buttons">
-        <button 
-          @click="setStatusFilter('not_redeemed')"
+        <button @click="setStatusFilter('not_redeemed')"
           :class="{ 'active-filter': selectedStatus === 'not_redeemed' }">
           Not Redeemed
         </button>
-        <button 
-          @click="setStatusFilter('redeemed')"
-          :class="{ 'active-filter': selectedStatus === 'redeemed' }">
+        <button @click="setStatusFilter('redeemed')" :class="{ 'active-filter': selectedStatus === 'redeemed' }">
           Redeemed
         </button>
-        <button 
-          @click="setStatusFilter('all')"
-          :class="{ 'active-filter': selectedStatus === 'all' }">
+        <button @click="setStatusFilter('all')" :class="{ 'active-filter': selectedStatus === 'all' }">
           All
         </button>
       </div>
@@ -53,7 +43,7 @@
     </div>
 
     <div v-else class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3">
-      <DonationCard v-for="listing in filteredListings" :key="listing.objectID" :listing="listing" />
+      <Card v-for="listing in filteredListings" :key="listing.objectID" :listing="listing" />
     </div>
   </div>
 </template>
@@ -65,7 +55,7 @@ definePageMeta({
 
 import { ref, onMounted, computed } from 'vue';
 import { fetchUserAttributes } from 'aws-amplify/auth';
-import DonationCard from '@/components/DonationCard.vue';
+import Card from '~/components/Card.vue';
 
 const config = useRuntimeConfig().public;
 const listings = ref([]);
@@ -91,16 +81,26 @@ async function fetchListings() {
       return;
     }
 
-    const response = await fetch(`${config.api_url}/donations`);
+    const response = await fetch(`${config.api_url}/listings/donations`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
     const data = await response.json();
 
+    console.log(data.body);
+
     if (response.ok && data.body) {
-      listings.value = JSON.parse(data.body);
+      const parsedBody = JSON.parse(data.body);
+      listings.value = parsedBody.listings;
+      console.log("Listings Data:", listings.value);
     } else {
       console.error("Failed to fetch listings");
+      listings.value = [];
     }
   } catch (error) {
     console.error("Error fetching listings:", error);
+    listings.value = [];
   } finally {
     isLoading.value = false;
   }

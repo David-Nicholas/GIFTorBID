@@ -7,8 +7,8 @@
           <p class="contact-form-header">Add Listing</p>
           <form @submit.prevent="handleSubmit">
             <div class="form-group">
-              <label class="attribute-key" for="objectName">Object Name</label>
-              <input v-model="form.objectName" type="text" id="objectName" placeholder="Enter object name"
+              <label class="attribute-key" for="name">Listing Name</label>
+              <input v-model="form.name" type="text" id="name" placeholder="Enter object name"
                 class="attribute-input" />
             </div>
 
@@ -114,13 +114,14 @@ const categories = [
   'leisure', 'entertainment', 'education', 'health', 'construction', 'toys'
 ];
 
+
 const form = ref({
-  objectName: '',
+  name: '',
   type: '',
   category: '',
   description: '',
   sellerEmail: '',
-  images: []
+  images: [],
 });
 
 const dropdowns = ref({ type: false, category: false });
@@ -132,6 +133,7 @@ const isDonationConfirmationVisible = ref(false);
 const isSubmitting = ref(false);
 const userPosts = ref(0);
 const selectedDuration = ref(7);
+const sub = ref('');
 
 const durations = [2, 7, 14, 21];
 
@@ -148,7 +150,8 @@ async function fetchAndSetUserAttributes() {
   try {
     const attributes = await fetchUserAttributes();
     form.value.sellerEmail = attributes.email || '';
-    userPosts.value = attributes["custom:posts"] ? parseInt(attributes["custom:posts"], 10) : 0;
+    sub.value = attributes.sub;
+    userPosts.value = attributes["custom:listings_number"] ? parseInt(attributes["custom:listings_number"], 10) : 0;
   } catch (error) {
     console.error('Error fetching user attributes:', error);
   }
@@ -194,7 +197,7 @@ function compressImage(base64Str, callback) {
 function handleSubmit() {
   if (isSubmitting.value) return;
 
-  if (!form.value.objectName || !form.value.type || !form.value.category || !form.value.description || !form.value.sellerEmail) {
+  if (!form.value.name || !form.value.type || !form.value.category || !form.value.description || !form.value.sellerEmail) {
     showValidationPopup();
     return;
   }
@@ -213,7 +216,7 @@ function confirmDonation() {
 
 function cancelDonation() {
   isDonationConfirmationVisible.value = false;
-  form.value = { objectName: '', type: '', category: '', description: '', sellerEmail: form.value.sellerEmail, images: [] };
+  form.value = { name: '', type: '', category: '', description: '', sellerEmail: form.value.sellerEmail, images: [] };
   imagePreviews.value = [];
 }
 
@@ -224,24 +227,27 @@ async function submitListing() {
     const token = session.tokens.idToken.toString();
     console.log(token);
     const listingData = { ...form.value };
+    listingData.sub = sub.value
 
     if (form.value.type === 'auction') {
       listingData.duration = selectedDuration.value;
     }
 
-    const response = await fetch(`${config.api_url}/listing`, {
+    const response = await fetch(`${config.api_url}/user/listings/listing`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
       body: JSON.stringify({ body: JSON.stringify(listingData) })
     });
+
+    console.log("Body: ", JSON.stringify(listingData));
 
     if (!response.ok) throw new Error('Failed to submit listing');
 
     const newPostCount = userPosts.value ? parseInt(userPosts.value, 10) + 1 : 1;
-    await updateUserAttributes({ userAttributes: { "custom:posts": newPostCount.toString() } });
+    await updateUserAttributes({ userAttributes: { "custom:listings_number": newPostCount.toString() } });
 
     showPopup();
-    form.value = { objectName: '', type: '', category: '', description: '', sellerEmail: form.value.sellerEmail, images: [] };
+    form.value = { name: '', type: '', category: '', description: '', sellerEmail: form.value.sellerEmail, images: [] };
     imagePreviews.value = [];
     userPosts.value = newPostCount;
     selectedDuration.value = 7;

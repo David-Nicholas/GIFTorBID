@@ -107,7 +107,7 @@
     };
   
     try {
-      const response = await $fetch(`${config.api_url}/sendwmail`, {
+      const response = await $fetch(`${config.api_url}/support`, {
         method: 'POST',
         body: payload,
       });

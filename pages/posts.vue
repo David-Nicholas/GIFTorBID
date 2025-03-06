@@ -10,7 +10,7 @@
             <p>Loading your listings...</p>
         </div>
 
-        <div v-else-if="listings.length === 0" class="empty-message">
+        <div v-else-if="listings.listings.length === 0" class="empty-message">
             <p>You have not created any listings yet.</p>
             <div class="image-container">
                 <img src="../assets/image.png" alt="mascot">
@@ -18,7 +18,7 @@
         </div>
 
         <div v-else class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3">
-            <EditCard v-for="listing in listings" :key="listing.objectID" :listing="listing" />
+            <EditCard v-for="listing in listings.listings" :key="listing.objectID" :listing="listing" />
         </div>
     </div>
 </template>
@@ -30,8 +30,8 @@ definePageMeta({
 });
 
 import { ref, onMounted } from 'vue';
-import { fetchUserAttributes } from 'aws-amplify/auth';
-import EditCard from '@/components/EditCard.vue';
+import { fetchUserAttributes, fetchAuthSession } from 'aws-amplify/auth';
+import EditCard from '~/components/EditCard.vue';
 
 const config = useRuntimeConfig().public;
 const listings = ref([]);
@@ -43,6 +43,8 @@ async function fetchListings() {
 
     try {
         const attributes = await fetchUserAttributes();
+        const session = await fetchAuthSession();
+        const token = session.tokens.idToken.toString();
         userEmail.value = attributes.email || "";
         if (!userEmail.value) {
             console.error("User email not found");
@@ -50,7 +52,11 @@ async function fetchListings() {
             return;
         }
 
-        const response = await fetch(`${config.api_url}/listings?sellerEmail=${userEmail.value}`);
+        const response = await fetch(`${config.api_url}/user/listings?email=${userEmail.value}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `${token}`},
+        });
+
         const data = await response.json();
 
         if (response.ok && data.body) {
@@ -58,6 +64,7 @@ async function fetchListings() {
         } else {
             console.error("Failed to fetch listings");
         }
+        console.log(listings.value);
     } catch (error) {
         console.error("Error fetching listings:", error);
     } finally {

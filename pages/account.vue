@@ -140,8 +140,8 @@ const redirectTo = (page) => {
 
 const defaultModifiableAttributes = ['phone_number', 'name'];
 const defaultNonModifiableAttributes = ['email', 'birthdate'];
-const customModifiableAttributes = ['custom:country', 'custom:region', 'custom:city', 'custom:street-address', 'custom:postal-code'];
-const customNonModifiableAttributes = ['custom:rating', 'custom:posts'];
+const customModifiableAttributes = ['custom:country', 'custom:region', 'custom:city', 'custom:address', 'custom:postal-code'];
+const customNonModifiableAttributes = ['custom:listings_number'];
 
 const editableAttributes = ref({});
 const nonEditableAttributes = ref({});
@@ -273,13 +273,11 @@ function getPlaceholderForCustomAttribute(key) {
       return 'Enter your region/state';
     case 'custom:city':
       return 'Enter your city';
-    case 'custom:street-address':
+    case 'custom:address':
       return 'Street, number, floor, apartment';
     case 'custom:postal-code':
       return 'Enter your postal code';
-    case 'custom:posts':
-      return '0';
-    case 'custom:rating':
+    case 'custom:listings_number':
       return '0';
     default:
       return 'Enter value';

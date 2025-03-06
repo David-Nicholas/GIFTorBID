@@ -7,14 +7,19 @@
                     <p class="contact-form-header">View and Edit Listing</p>
                     <form @submit.prevent="handleSubmit">
                         <div class="form-group">
-                            <label class="attribute-key" for="objectName">Object Name</label>
-                            <input v-model="form.objectName" type="text" id="objectName" class="attribute-input" />
+                            <label class="attribute-key" for="name">Listing Name</label>
+                            <input v-model="form.name" type="text" id="name" class="attribute-input" />
                         </div>
 
                         <div class="form-group">
                             <label class="attribute-key" for="description">Description</label>
                             <textarea v-model="form.description" id="description" rows="4"
                                 class="attribute-input"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="attribute-key">Category</label>
+                            <input v-model="listing.category" type="text" class="attribute-input" disabled />
                         </div>
 
                         <div class="form-group">
@@ -26,8 +31,8 @@
                         <!-- Auction-specific fields -->
                         <div v-if="listing.type === 'auction'" class="auction-fields">
                             <div class="form-group">
-                                <label class="attribute-key">Start Date</label>
-                                <input v-model="listing.startDate" type="text" class="attribute-input" disabled />
+                                <label class="attribute-key">Listing Date</label>
+                                <input v-model="listing.listingDate" type="text" class="attribute-input" disabled />
                             </div>
 
                             <div class="form-group">
@@ -40,6 +45,7 @@
                                 <input v-model="listing.duration" type="text" class="attribute-input" disabled />
                             </div>
 
+
                             <!-- Auction Bids Table -->
                             <div v-if="listing.type === 'auction'" class="bids-table">
                                 <h2 class="text-xl font-semibold mt-4 mb-2">Bids</h2>
@@ -50,6 +56,16 @@
                                 <p v-else class="text-gray-500">No bids have been placed yet for this acution.</p>
                             </div>
 
+                        </div>
+
+                        <div class="form-group">
+                            <label class="attribute-key">Upload Images (Max 3) / Current: {{ listing.images.length }}</label>
+                            <input type="file" accept="image/jpeg, image/png" multiple @change="handleImageUpload"
+                                class="attribute-input" />
+                            <div v-if="imagePreviews.length" class="image-preview-container">
+                                <img v-for="(image, index) in imagePreviews" :key="index" :src="image"
+                                    class="image-preview" />
+                            </div>
                         </div>
 
                         <div class="form-group">
@@ -99,12 +115,14 @@ definePageMeta({
 import { useState } from "#app";
 import { useRouter } from "vue-router";
 import { ref, computed } from 'vue';
-import { fetchUserAttributes, updateUserAttributes } from 'aws-amplify/auth';
+import { fetchUserAttributes, updateUserAttributes, fetchAuthSession } from 'aws-amplify/auth';
 
 const router = useRouter();
 const selectedListing = useState("selectedListing");
 const config = useRuntimeConfig().public;
 const userPosts = ref(0);
+const sub = ref('');
+const imagePreviews = ref([]);
 
 if (!selectedListing.value) {
     console.error("No listing found in state. Redirecting...");
@@ -115,8 +133,9 @@ if (!selectedListing.value) {
 const listing = ref(selectedListing.value);
 
 const form = ref({
-    objectName: listing.value.objectName,
+    name: listing.value.name,
     description: listing.value.description,
+    images: [],
 });
 
 const isValidationPopupVisible = ref(false);
@@ -141,26 +160,32 @@ const bids = computed(() => {
 
 
 async function fetchAndSetUserAttributes() {
-  try {
-    const attributes = await fetchUserAttributes();
-    userPosts.value = attributes["custom:posts"] ? parseInt(attributes["custom:posts"], 10) : 0;
-  } catch (error) {
-    console.error('Error fetching user attributes:', error);
-  }
+    try {
+        const attributes = await fetchUserAttributes();
+        userPosts.value = attributes["custom:listings_number"] ? parseInt(attributes["custom:listings_number"], 10) : 0;
+    } catch (error) {
+        console.error('Error fetching user attributes:', error);
+    }
 }
 
 async function deleteListingTrigger() {
     try {
-        const response = await fetch(`${config.api_url}/object`, {
+        const attributes = await fetchUserAttributes();
+        const session = await fetchAuthSession();
+        const token = session.tokens.idToken.toString();
+        sub.value = attributes.sub;
+        const response = await fetch(`${config.api_url}/user/listings/listing`, {
             method: "DELETE",
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `${token}` },
             body: JSON.stringify({
-                objectID: listing.value.objectID,
-                sellerEmail: listing.value.sellerEmail,
-            }),
+                body: JSON.stringify({
+                    listingID: listing.value.listingID,
+                    sellerEmail: listing.value.sellerEmail,
+                    sub: sub.value
+                })
+            })
         });
+
 
 
         if (!response.ok) {
@@ -169,28 +194,68 @@ async function deleteListingTrigger() {
 
         console.log("Listing deleted successfully");
         const newPostCount = userPosts.value ? parseInt(userPosts.value, 10) - 1 : 1;
-        await updateUserAttributes({ userAttributes: { "custom:posts": newPostCount.toString() }});
+        await updateUserAttributes({ userAttributes: { "custom:listings_number": newPostCount.toString() } });
         router.push("/posts");
     } catch (error) {
         console.error("Error deleting listing:", error);
     }
 }
 
+function handleImageUpload(event) {
+    const files = event.target.files;
+    if (files.length > 3) {
+        alert('You can upload up to 3 images only.');
+        return;
+    }
+
+    form.value.images = [];
+    imagePreviews.value = [];
+
+    Array.from(files).forEach(file => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+            compressImage(reader.result, (compressedBase64) => {
+                form.value.images.push(compressedBase64);
+                imagePreviews.value.push(compressedBase64);
+            });
+        };
+    });
+}
+
+function compressImage(base64Str, callback) {
+    const img = new Image();
+    img.src = base64Str;
+    img.onload = function () {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const maxWidth = 800;
+        const scaleSize = maxWidth / img.width;
+        canvas.width = maxWidth;
+        canvas.height = img.height * scaleSize;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        callback(canvas.toDataURL('image/jpeg', 0.7));
+    };
+}
+
 async function changeListingTrigger() {
     try {
-        const endpoint = listing.value.type === "auction" ? "auction" : "donation";
-        const response = await fetch(`${config.api_url}/${endpoint}`, {
+        const attributes = await fetchUserAttributes();
+        const session = await fetchAuthSession();
+        const token = session.tokens.idToken.toString();
+        sub.value = attributes.sub;
+        const response = await fetch(`${config.api_url}/user/listings/listing`, {
             method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `${token}` },
             body: JSON.stringify({
-                objectID: listing.value.objectID,
+                body: JSON.stringify({
+                listingID: listing.value.listingID,
                 sellerEmail: listing.value.sellerEmail,
-                updates: {
-                    description: form.value.description, 
-                    objectName: form.value.objectName,
-                }
+                sub: sub.value,
+                description: form.value.description,
+                name: form.value.name,
+                images: form.value.images,
+                })
             }),
         });
 
@@ -205,10 +270,10 @@ async function changeListingTrigger() {
     }
 }
 
-function updateListing(){
-    if (!form.objectName || !form.description) {
+function updateListing() {
+    if (!form.name || !form.description) {
         isChangeConfirmationVisible.value = true;
-  }
+    }
 }
 
 function confirmChange() {
