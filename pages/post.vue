@@ -1,7 +1,17 @@
 <template>
   <div class="post-root">
     <!-- Add Listing Form -->
-    <div class="main-container">
+    <div v-if="!isAuthenticated" class="unauthenticated-container">
+      <p class="unauthenticated-message">You need to be logged in to add a listing.</p>
+      <NuxtLink to="/account">
+        <CustomButton :buttonText="'Go to Account'" />
+      </NuxtLink>
+      <div class="image-container">
+        <img src="../assets/image.png" alt="mascot">
+      </div>
+    </div>
+
+    <div v-if="isAuthenticated" class="main-container">
       <div class="content-container">
         <div class="info-container">
           <p class="contact-form-header">Add Listing</p>
@@ -109,6 +119,7 @@ import { ref, onMounted } from 'vue';
 import { fetchUserAttributes, updateUserAttributes, fetchAuthSession } from 'aws-amplify/auth';
 
 const config = useRuntimeConfig().public;
+const isAuthenticated = ref(false);
 const categories = [
   'fashion', 'electronics', 'home appliances', 'culture and art', 'home and garden',
   'leisure', 'entertainment', 'education', 'health', 'construction', 'toys'
@@ -148,11 +159,16 @@ function selectOption(field, value) {
 
 async function fetchAndSetUserAttributes() {
   try {
-    const attributes = await fetchUserAttributes();
-    form.value.sellerEmail = attributes.email || '';
-    sub.value = attributes.sub;
-    userPosts.value = attributes["custom:listings_number"] ? parseInt(attributes["custom:listings_number"], 10) : 0;
+    const session = await fetchAuthSession();
+    if (session && session.tokens) {
+      isAuthenticated.value = true;
+      const attributes = await fetchUserAttributes();
+      form.value.sellerEmail = attributes.email || '';
+      sub.value = attributes.sub;
+      userPosts.value = attributes["custom:listings_number"] ? parseInt(attributes["custom:listings_number"], 10) : 0;
+    }
   } catch (error) {
+    isAuthenticated.value = false;
     console.error('Error fetching user attributes:', error);
   }
 }
@@ -235,7 +251,7 @@ async function submitListing() {
 
     const response = await fetch(`${config.api_url}/user/listings/listing`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify({ body: JSON.stringify(listingData) })
     });
 
@@ -279,6 +295,24 @@ onMounted(fetchAndSetUserAttributes);
 </script>
 
 <style scoped>
+.unauthenticated-container {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.unauthenticated-message {
+  font-size: 18px;
+  margin-bottom: 10px;
+  color: #555;
+}
+
+.image-container {
+    margin: 0 auto;
+    align-self: center;
+    width: 50%;
+    height: 50%;
+}
+
 .custom-dropdown {
   width: 100%;
   padding: 8px;

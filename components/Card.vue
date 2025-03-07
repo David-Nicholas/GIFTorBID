@@ -7,6 +7,7 @@
         <div class="info-section">
             <h2 class="listing-title">{{ listing.name }}</h2>
             <p class="listing-type">{{ listing.status.toUpperCase() }}</p>
+            <p v-if="listing.type === 'auction'" class="listing-time">{{ timeLeft }}</p>
         </div>
 
         <div class="action-section">
@@ -22,6 +23,7 @@
 import { computed, ref, onMounted } from 'vue';
 import { useState } from "#app";
 import { useRouter } from "vue-router";
+import { DateTime } from 'luxon';
 
 const props = defineProps({
     listing: Object,
@@ -29,11 +31,10 @@ const props = defineProps({
 
 const selectedListing = useState("selectedListing");
 const router = useRouter();
-const redeemed = ref(false);
 
 function goToEditPage() {
     selectedListing.value = props.listing;
-    router.push(`/${props.listing.type}s/${props.listing.listingID}`);
+    router.push(`/${props.listing.type}/${props.listing.listingID}`);
 }
 
 const firstImage = computed(() => {
@@ -46,6 +47,20 @@ const firstImage = computed(() => {
 //     ? props.listing.images[0] 
 //     : "https://upload.wikimedia.org/wikipedia/commons/a/a3/Image-not-found.png?20210521171500"; // Placeholder if no image exists
 // });
+
+const timeLeft = computed(() => {
+    if (props.listing.type === "auction" && props.listing.endDate) {
+        const endDate = DateTime.fromISO(props.listing.endDate);
+        const now = DateTime.now();
+
+        if (endDate > now) {
+            return `Time left: ${endDate.toRelative()}`;
+        } else {
+            return "Auction Ended";
+        }
+    }
+    return "";
+});
 
 const buttonColor = computed(() => {
     return props.listing.type === "auction" ? "#EBA92E" : "#35A45F";

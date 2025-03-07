@@ -341,7 +341,6 @@ onMounted(fetchAndSetUserAttributes);
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
     padding: 0 15px;
 }
 
@@ -353,6 +352,8 @@ onMounted(fetchAndSetUserAttributes);
 }
 
 .info-container {
+    margin-top: 40px;
+    margin-bottom: 40px;
     width: 100%;
     border: 1.5px solid #8e8d8d;
     padding: 16px;

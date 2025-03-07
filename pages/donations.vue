@@ -1,7 +1,5 @@
 <template>
   <div class="posts-container">
-    <h1 class="text-3xl font-bold text-center mb-6">Donations</h1>
-
     <div class="filter-container">
       <h2 class="filter-title">Filter by Category:</h2>
       <div class="filter-buttons">
@@ -18,9 +16,8 @@
     <div class="filter-container">
       <h2 class="filter-title">Filter by Status:</h2>
       <div class="filter-buttons">
-        <button @click="setStatusFilter('not_redeemed')"
-          :class="{ 'active-filter': selectedStatus === 'not_redeemed' }">
-          Not Redeemed
+        <button @click="setStatusFilter('available')" :class="{ 'active-filter': selectedStatus === 'available' }">
+          Available
         </button>
         <button @click="setStatusFilter('redeemed')" :class="{ 'active-filter': selectedStatus === 'redeemed' }">
           Redeemed
@@ -43,7 +40,7 @@
     </div>
 
     <div v-else class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3">
-      <Card v-for="listing in filteredListings" :key="listing.objectID" :listing="listing" />
+        <Card v-for="listing in filteredListings" :key="listing.objectID" :listing="listing" />
     </div>
   </div>
 </template>
@@ -54,13 +51,11 @@ definePageMeta({
 });
 
 import { ref, onMounted, computed } from 'vue';
-import { fetchUserAttributes } from 'aws-amplify/auth';
 import Card from '~/components/Card.vue';
 
 const config = useRuntimeConfig().public;
 const listings = ref([]);
 const isLoading = ref(true);
-const userEmail = ref("");
 
 const categories = ref([
   'fashion', 'electronics', 'home appliances', 'culture and art', 'home and garden',
@@ -73,13 +68,6 @@ async function fetchListings() {
   isLoading.value = true;
 
   try {
-    const attributes = await fetchUserAttributes();
-    userEmail.value = attributes.email || "";
-    if (!userEmail.value) {
-      console.error("User email not found");
-      isLoading.value = false;
-      return;
-    }
 
     const response = await fetch(`${config.api_url}/listings/donations`, {
       method: 'GET',
@@ -124,13 +112,16 @@ function setStatusFilter(status) {
 
 const filteredListings = computed(() => {
   return listings.value.filter(listing => {
+    if (listing.status === "closed") {
+      return false;
+    }
     const categoryMatch = selectedCategories.value.length === 0 || selectedCategories.value.includes(listing.category);
 
-    const isRedeemed = listing.winnerEmail && listing.winnerEmail.trim() !== "";
+    const isRedeemed = listing.status !== "available";
     const statusMatch =
       selectedStatus.value === "all" ||
       (selectedStatus.value === "redeemed" && isRedeemed) ||
-      (selectedStatus.value === "not_redeemed" && !isRedeemed);
+      (selectedStatus.value === "available" && !isRedeemed);
 
     return categoryMatch && statusMatch;
   });
@@ -154,8 +145,10 @@ onMounted(fetchListings);
 .posts-container {
   max-width: 100%;
   margin: 0 auto;
-  padding: 20px;
   text-align: center;
+  margin-top: 40px;
+  padding-left: 20px;
+  padding-right: 20px;
 }
 
 .loading-container,
@@ -163,6 +156,10 @@ onMounted(fetchListings);
   font-size: 18px;
   color: #555;
   margin-top: 20px;
+}
+
+.main-filter-container {
+  margin-top: 40px;
 }
 
 .filter-container {
