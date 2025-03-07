@@ -1,6 +1,5 @@
 <template>
   <div class="posts-container">
-    <h1 class="text-3xl font-bold text-center mb-6">Auctions</h1>
 
     <div class="filter-container">
       <h2 class="filter-title">Filter by Category:</h2>
@@ -18,8 +17,7 @@
     <div class="filter-container">
       <h2 class="filter-title">Filter by Status:</h2>
       <div class="filter-buttons">
-        <button @click="setStatusFilter('available')"
-          :class="{ 'active-filter': selectedStatus === 'available' }">
+        <button @click="setStatusFilter('available')" :class="{ 'active-filter': selectedStatus === 'available' }">
           Available
         </button>
         <button @click="setStatusFilter('redeemed')" :class="{ 'active-filter': selectedStatus === 'redeemed' }">
@@ -54,13 +52,11 @@ definePageMeta({
 });
 
 import { ref, onMounted, computed } from 'vue';
-import { fetchUserAttributes } from 'aws-amplify/auth';
 import Card from '~/components/Card.vue';
 
 const config = useRuntimeConfig().public;
 const listings = ref([]);
 const isLoading = ref(true);
-const userEmail = ref("");
 
 const categories = ref([
   'fashion', 'electronics', 'home appliances', 'culture and art', 'home and garden',
@@ -73,13 +69,6 @@ async function fetchListings() {
   isLoading.value = true;
 
   try {
-    const attributes = await fetchUserAttributes();
-    userEmail.value = attributes.email || "";
-    if (!userEmail.value) {
-      console.error("User email not found");
-      isLoading.value = false;
-      return;
-    }
 
     const response = await fetch(`${config.api_url}/listings/auctions`, {
       method: 'GET',
@@ -124,9 +113,13 @@ function setStatusFilter(status) {
 
 const filteredListings = computed(() => {
   return listings.value.filter(listing => {
+    if (listing.status === "closed") {
+      return false;
+    }
+
     const categoryMatch = selectedCategories.value.length === 0 || selectedCategories.value.includes(listing.category);
 
-    const isRedeemed = listing.winnerEmail && listing.winnerEmail.trim() !== "";
+    const isRedeemed = listing.status !== "available";
     const statusMatch =
       selectedStatus.value === "all" ||
       (selectedStatus.value === "redeemed" && isRedeemed) ||
@@ -154,8 +147,10 @@ onMounted(fetchListings);
 .posts-container {
   max-width: 100%;
   margin: 0 auto;
-  padding: 20px;
   text-align: center;
+  margin-top: 40px;
+  padding-left: 20px;
+  padding-right: 20px;
 }
 
 .loading-container,

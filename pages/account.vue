@@ -378,7 +378,7 @@ function closeChangePopup() {
   display: flex;
   justify-content: center;
   align-items: top;
-  padding-top: 100px;
+  margin-top: 40px;
 }
 
 .content-container {

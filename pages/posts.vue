@@ -1,5 +1,14 @@
 <template>
-    <div class="posts-container">
+    <div v-if="!isAuthenticated" class="unauthenticated-container">
+        <p class="unauthenticated-message">You need to be logged to see you listings.</p>
+        <NuxtLink to="/account">
+            <CustomButton :buttonText="'Go to Account'" />
+        </NuxtLink>
+        <div class="image-container">
+            <img src="../assets/image.png" alt="mascot">
+        </div>
+    </div>
+    <div v-if="isAuthenticated" class="posts-container">
         <h1 class="text-3xl font-bold text-center mb-6">My Listings</h1>
         <div class="post-btn-container">
             <NuxtLink to="/post" active-class="active-link">
@@ -37,36 +46,42 @@ const config = useRuntimeConfig().public;
 const listings = ref([]);
 const isLoading = ref(true);
 const userEmail = ref("");
+const isAuthenticated = ref(false);
 
 async function fetchListings() {
     isLoading.value = true;
 
     try {
-        const attributes = await fetchUserAttributes();
         const session = await fetchAuthSession();
-        const token = session.tokens.idToken.toString();
-        userEmail.value = attributes.email || "";
-        if (!userEmail.value) {
-            console.error("User email not found");
-            isLoading.value = false;
-            return;
+        if (session && session.tokens) {
+            isAuthenticated.value = true;
+            const attributes = await fetchUserAttributes();
+            const token = session.tokens.idToken.toString();
+            userEmail.value = attributes.email || "";
+            if (!userEmail.value) {
+                console.error("User email not found");
+                isLoading.value = false;
+                return;
+            }
+
+
+            const response = await fetch(`${config.api_url}/user/listings?email=${userEmail.value}`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `${token}` },
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.body) {
+                listings.value = JSON.parse(data.body);
+            } else {
+                console.error("Failed to fetch listings");
+            }
+            console.log(listings.value);
         }
-
-        const response = await fetch(`${config.api_url}/user/listings?email=${userEmail.value}`, {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `${token}`},
-        });
-
-        const data = await response.json();
-
-        if (response.ok && data.body) {
-            listings.value = JSON.parse(data.body);
-        } else {
-            console.error("Failed to fetch listings");
-        }
-        console.log(listings.value);
     } catch (error) {
         console.error("Error fetching listings:", error);
+        isAuthenticated.value = false;
     } finally {
         isLoading.value = false;
     }
@@ -76,6 +91,24 @@ onMounted(fetchListings);
 </script>
 
 <style scoped>
+.unauthenticated-container {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.unauthenticated-message {
+    font-size: 18px;
+    margin-bottom: 10px;
+    color: #555;
+}
+
+.image-container {
+    margin: 0 auto;
+    align-self: center;
+    width: 50%;
+    height: 50%;
+}
+
 .image-container {
     margin: 0 auto;
     align-self: center;
@@ -90,8 +123,11 @@ onMounted(fetchListings);
 .posts-container {
     max-width: 100%;
     margin: 0 auto;
-    padding: 20px;
+    padding-left: 20px;
+    padding-right: 20px;
     text-align: center;
+    margin-top: 40px;
+    margin-bottom: 40px;
 }
 
 .loading-container,
