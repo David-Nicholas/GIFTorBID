@@ -1,5 +1,5 @@
 <template>
-  <div class="posts-container">
+  <div class="index-root">
 
     <div v-if="isLoading" class="loading-container">
       <p>Loading listings...</p>
@@ -88,7 +88,7 @@ onMounted(fetchListings);
   margin-bottom: 40px;
 }
 
-.posts-container {
+.index-root {
   max-width: 100%;
   margin: 0 auto;
   text-align: center;

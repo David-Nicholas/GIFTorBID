@@ -1,5 +1,5 @@
 <template>
-  <div class="posts-container">
+  <div class="auctions-root">
 
     <div class="filter-container">
       <h2 class="filter-title">Filter by Category:</h2>
@@ -76,17 +76,9 @@ async function fetchListings() {
     });
 
     const data = await response.json();
-
-    console.log(data.body);
-
-    if (response.ok && data.body) {
-      const parsedBody = JSON.parse(data.body);
-      listings.value = parsedBody.listings;
-      console.log("Listings Data:", listings.value);
-    } else {
-      console.error("Failed to fetch listings");
-      listings.value = [];
-    }
+    listings.value = JSON.parse(data.body);
+    console.log("Listings post: ", listings.value);
+    
   } catch (error) {
     console.error("Error fetching listings:", error);
     listings.value = [];
@@ -144,7 +136,7 @@ onMounted(fetchListings);
   margin-bottom: 40px;
 }
 
-.posts-container {
+.auctions-root {
   max-width: 100%;
   margin: 0 auto;
   text-align: center;

@@ -70,7 +70,7 @@
 
                         <div class="form-group">
                             <CustomButton :buttonText="'Save Changes'" class="custom-btn" @activate="updateListing" />
-                            <CustomButton :buttonText="'Delete Listing'" class="custom-btnDelete"
+                            <CustomButton :buttonText="'Delete Listing'" class="custom-btn custom-btnDelete"
                                 @activate="deleteListing" />
                         </div>
                     </form>
@@ -185,8 +185,6 @@ async function deleteListingTrigger() {
                 })
             })
         });
-
-
 
         if (!response.ok) {
             throw new Error("Failed to delete listing");
@@ -397,6 +395,7 @@ onMounted(fetchAndSetUserAttributes);
 }
 
 .custom-btnDelete {
+    margin-top: 8px;
     width: 100%;
     background-color: #EBA92E;
 }
