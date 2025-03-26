@@ -22,13 +22,11 @@
   button {
     background-color: #2596be;
     color: white;
-    padding: 8px 16px;
+    padding: 8px 8px;
     cursor: pointer;
     border-radius: 6px;
     font-size: 16px;
     font-weight: bold;  
-    margin-bottom: 8px;
-    margin-top: 8px;
   }
   
   button:hover {

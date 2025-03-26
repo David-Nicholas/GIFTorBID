@@ -7,7 +7,21 @@
         <div class="info-section">
             <h2 class="listing-title">{{ listing.name }}</h2>
             <p class="listing-type">{{ listing.status.toUpperCase() }}</p>
-            <p v-if="listing.type === 'auction'" class="listing-time">{{ timeLeft }}</p>
+            <div v-if="listing.type === 'auction'">
+                <p v-if="timeLeft && !timeLeft.ended">
+                    <span v-if="timeLeft.days > 0">
+                        Time left: {{ timeLeft.days }} day<span v-if="timeLeft.days !== 1">s</span>,
+                        {{ timeLeft.hours }} hour<span v-if="timeLeft.hours !== 1">s</span>
+                    </span>
+                    <span v-else>
+                        Time left: {{ timeLeft.hours.toString().padStart(2, '0') }}:
+                        {{ timeLeft.minutes.toString().padStart(2, '0') }}:
+                        {{ timeLeft.seconds.toString().padStart(2, '0') }}
+                    </span>
+                </p>
+
+                <p v-else-if="timeLeft?.ended">Auction Ended</p>
+            </div>
         </div>
 
         <div class="action-section">
@@ -20,10 +34,12 @@
 
 
 <script setup>
-import { computed, ref, onMounted } from 'vue';
+import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { useState } from "#app";
 import { useRouter } from "vue-router";
 import { DateTime } from 'luxon';
+
+const now = ref(DateTime.now());
 
 const props = defineProps({
     listing: Object,
@@ -34,7 +50,7 @@ const router = useRouter();
 
 function goToEditPage() {
     selectedListing.value = props.listing;
-    router.push(`/${props.listing.type}/${props.listing.listingID}`);
+    router.push(`${props.listing.type}/${props.listing.listingID}`);
 }
 
 const firstImage = computed(() => {
@@ -50,21 +66,40 @@ const firstImage = computed(() => {
 
 const timeLeft = computed(() => {
     if (props.listing.type === "auction" && props.listing.endDate) {
-        const endDate = DateTime.fromISO(props.listing.endDate);
-        const now = DateTime.now();
+        const end = DateTime.fromISO(props.listing.endDate);
+        const diff = end.diff(now.value, ['days', 'hours', 'minutes', 'seconds']).toObject();
 
-        if (endDate > now) {
-            return `Time left: ${endDate.toRelative()}`;
-        } else {
-            return "Auction Ended";
+        if (end <= now.value) {
+            return { ended: true };
         }
+
+        return {
+            days: Math.floor(diff.days || 0),
+            hours: Math.floor(diff.hours || 0),
+            minutes: Math.floor(diff.minutes || 0),
+            seconds: Math.floor(diff.seconds || 0),
+            ended: false,
+        };
     }
-    return "";
+    return null;
 });
 
 const buttonColor = computed(() => {
     return props.listing.type === "auction" ? "#EBA92E" : "#35A45F";
 });
+
+if (props.listing.type === "auction") {
+    let interval;
+    onMounted(() => {
+        interval = setInterval(() => {
+            now.value = DateTime.now();
+        }, 1000);
+    });
+
+    onUnmounted(() => {
+        clearInterval(interval);
+    });
+}
 </script>
 
 <style scoped>
@@ -96,7 +131,7 @@ const buttonColor = computed(() => {
 .info-section {
     padding: 10px;
     width: 100%;
-    height: 80px;
+    height: 100px;
     text-align: center;
 }
 

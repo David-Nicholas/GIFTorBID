@@ -1,114 +1,114 @@
 <template>
   <div class="account-root">
-  <div class="warn-container">
-    <WarnMessage v-if="showError"
-      description="Some data is missing to complete the sign-up. Please provide information in the empty fields below." />
-  </div>
-  <div class="main-container">
-    <Authenticator :login-mechanisms="['email']" :sign-up-attributes="['phone_number', 'name', 'birthdate']">
-      <template v-slot="{ signOut, user }">
-        <div class="content-container">
-          <div class="left-column">
+    <div class="warn-container">
+      <WarnMessage v-if="showError"
+        description="Some data is missing to complete the sign-up. Please provide information in the empty fields below." />
+    </div>
+    <div class="main-container">
+      <Authenticator :login-mechanisms="['email']" :sign-up-attributes="['phone_number', 'name', 'birthdate']">
+        <template v-slot="{ signOut, user }">
+          <div class="content-container">
+            <div class="left-column">
 
-            <!-- Sign Out button -->
-            <div class="info-container">
-              <CustomButton :buttonText="'Sign out'" class="custom-btn" @activate="signOut" />
-            </div>
-
-            <!-- Custom modifiable attributes section -->
-            <div class="info-container">
-              <p class="title-paragraph">Your Address</p>
-              <div v-for="(value, key) in filteredModifiableCustomAttributes()" :key="key">
-                <p class="attribute-key">{{ formatKey(key) }}</p>
-                <input v-model="customEditableAttributes[key]" type="text" class="attribute-input"
-                  :placeholder="getPlaceholderForCustomAttribute(key)" />
+              <!-- Sign Out button -->
+              <div class="info-container">
+                <CustomButton :buttonText="'Sign out'" class="custom-btn" @activate="signOut" />
               </div>
-              <CustomButton :buttonText="'Change'" class="custom-btn change-all-btn"
-                @activate="handleChangeAllCustomAttributes()" />
-            </div>
 
-            <!-- Custom non-modifiable attributes section -->
-            <div class="info-container">
-              <p class="title-paragraph">Your Stats</p>
-              <div class="custom-non-modifiable-columns">
-                <div v-for="(value, key) in filteredNonModifiableCustomAttributes()" :key="key"
-                  class="custom-attribute-column">
-                  <p class="custom-attribute-key">{{ formatKey(key) }}</p>
-                  <div class="custom-attribute-box">
-                    <NuxtLink to="/posts">{{ value || '0' }}</NuxtLink>
+              <!-- Custom modifiable attributes section -->
+              <div class="info-container">
+                <p class="title-paragraph">Your Address</p>
+                <div v-for="(value, key) in filteredModifiableCustomAttributes()" :key="key">
+                  <p class="attribute-key">{{ formatKey(key) }}</p>
+                  <input v-model="customEditableAttributes[key]" type="text" class="attribute-input"
+                    :placeholder="getPlaceholderForCustomAttribute(key)" />
+                </div>
+                <CustomButton :buttonText="'Change'" class="custom-btn change-all-btn"
+                  @activate="handleChangeAllCustomAttributes()" />
+              </div>
+
+              <!-- Custom non-modifiable attributes section -->
+              <div class="info-container">
+                <p class="title-paragraph">Your Stats</p>
+                <div class="custom-non-modifiable-columns">
+                  <div v-for="(value, key) in filteredNonModifiableCustomAttributes()" :key="key"
+                    class="custom-attribute-column">
+                    <p class="custom-attribute-key">{{ formatKey(key) }}</p>
+                    <div class="custom-attribute-box">
+                      <NuxtLink to="/posts">{{ value || '0' }}</NuxtLink>
+                    </div>
                   </div>
                 </div>
               </div>
+
             </div>
 
-          </div>
+            <div class="right-column">
 
-          <div class="right-column">
-
-            <!-- Default modifiable attributes section -->
-            <div class="info-container">
-              <p class="title-paragraph">Your Displayable Informations</p>
-              <div v-for="(value, key) in filteredModifiableAttributes()" :key="key">
-                <p class="attribute-key">{{ formatKey(key) }}</p>
-                <input v-model="editableAttributes[key]" type="text" class="attribute-input" />
+              <!-- Default modifiable attributes section -->
+              <div class="info-container">
+                <p class="title-paragraph">Your Displayable Informations</p>
+                <div v-for="(value, key) in filteredModifiableAttributes()" :key="key">
+                  <p class="attribute-key">{{ formatKey(key) }}</p>
+                  <input v-model="editableAttributes[key]" type="text" class="attribute-input" />
+                </div>
+                <CustomButton :buttonText="'Change'" class="custom-btn change-all-btn"
+                  @activate="handleChangeAllAttributes()" />
               </div>
-              <CustomButton :buttonText="'Change'" class="custom-btn change-all-btn"
-                @activate="handleChangeAllAttributes()" />
-            </div>
 
-            <!-- Default non-modifiable attributes section -->
-            <div class="info-container">
-              <p class="title-paragraph">Your Account Informations</p>
-              <div v-for="(value, key) in filteredNonModifiableAttributes()" :key="key">
-                <p class="attribute-key">{{ formatKey(key) }}</p>
-                <input v-model="nonEditableAttributes[key]" type="text" class="attribute-input" disabled />
+              <!-- Default non-modifiable attributes section -->
+              <div class="info-container">
+                <p class="title-paragraph">Your Account Informations</p>
+                <div v-for="(value, key) in filteredNonModifiableAttributes()" :key="key">
+                  <p class="attribute-key">{{ formatKey(key) }}</p>
+                  <input v-model="nonEditableAttributes[key]" type="text" class="attribute-input" disabled />
+                </div>
+                <p class="info-message">
+                  Note: These details can only be updated by contacting our support team. Please reach out to support if
+                  you need to make any changes.
+                </p>
               </div>
-              <p class="info-message">
-                Note: These details can only be updated by contacting our support team. Please reach out to support if
-                you need to make any changes.
-              </p>
-            </div>
 
-            <div class="info-container">
-              <p class="attribute-key">
-                Deleting the GIFTorBID account is an irreversible action by which your data will be removed. Keep in
-                mind that for legal reasons, some data can be kept.
-              </p>
-              <CustomButton :buttonText="'Delete account'" class="custom-btn" @activate="showDeletePopup()" />
-            </div>
+              <div class="info-container">
+                <p class="attribute-key">
+                  Deleting the GIFTorBID account is an irreversible action by which your data will be removed. Keep in
+                  mind that for legal reasons, some data can be kept.
+                </p>
+                <CustomButton :buttonText="'Delete account'" class="custom-btn" @activate="showDeletePopup()" />
+              </div>
 
+            </div>
           </div>
+        </template>
+      </Authenticator>
+
+      <!-- Delete popup -->
+      <div v-if="isDeletePopupVisible" class="popup">
+        <div class="popup-content">
+          <p class="attribute-key">Are you sure you want to delete your account?</p>
+          <CustomButton :buttonText="'Delete'" class="custom-btn" @activate="handleDeleteUser()" />
+          <CustomButton :buttonText="'Cancel'" class="custom-btn" @activate="closeDeletePopup()" />
         </div>
-      </template>
-    </Authenticator>
-
-    <!-- Delete popup -->
-    <div v-if="isDeletePopupVisible" class="popup">
-      <div class="popup-content">
-        <p class="attribute-key">Are you sure you want to delete your account?</p>
-        <CustomButton :buttonText="'Delete'" class="custom-btn" @activate="handleDeleteUser()" />
-        <CustomButton :buttonText="'Cancel'" class="custom-btn" @activate="closeDeletePopup()" />
       </div>
-    </div>
 
-    <!-- Delete successful popup -->
-    <div v-if="isDeleteSuccessPopupVisible" class="popup">
-      <div class="popup-content">
-        <p class="attribute-key">The account was deleted</p>
-        <CustomButton :buttonText="'Close'" class="custom-btn" @activate="closeDeleteSuccessPopup()" />
+      <!-- Delete successful popup -->
+      <div v-if="isDeleteSuccessPopupVisible" class="popup">
+        <div class="popup-content">
+          <p class="attribute-key">The account was deleted</p>
+          <CustomButton :buttonText="'Close'" class="custom-btn" @activate="closeDeleteSuccessPopup()" />
+        </div>
       </div>
-    </div>
 
-    <!-- Attribute changed popup -->
-    <div v-if="isChangePopupVisible" class="popup">
-      <div class="popup-content">
-        <p class="attribute-key">The information was changed</p>
-        <CustomButton :buttonText="'Close'" class="custom-btn" @activate="closeChangePopup()" />
+      <!-- Attribute changed popup -->
+      <div v-if="isChangePopupVisible" class="popup">
+        <div class="popup-content">
+          <p class="attribute-key">The information was changed</p>
+          <CustomButton :buttonText="'Close'" class="custom-btn" @activate="closeChangePopup()" />
+        </div>
       </div>
-    </div>
 
+    </div>
   </div>
-</div>
 </template>
 
 <script setup>
@@ -457,17 +457,17 @@ function closeChangePopup() {
 
 .custom-non-modifiable-columns {
   display: flex;
-  flex-wrap: wrap; 
-  justify-content: center; 
-  align-items: center; 
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
   gap: 100px
 }
 
 .custom-attribute-column {
   display: flex;
-  flex-direction: column; 
-  align-items: center; 
-  justify-content: center; 
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
 }
 
@@ -478,19 +478,19 @@ function closeChangePopup() {
 
 .custom-attribute-box {
   display: flex;
-  justify-content: center; 
-  align-items: center; 
+  justify-content: center;
+  align-items: center;
   width: 80px;
   height: 80px;
-  border: 1.5px solid #000; 
+  border: 1.5px solid #000;
   font-size: 60px;
   text-align: center;
-  line-height: normal; 
+  line-height: normal;
   margin-bottom: 8px;
 }
 
 .custom-attribute-box:hover {
-  color: #2596be; 
+  color: #2596be;
   border-color: #2596be;
 }
 

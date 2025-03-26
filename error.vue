@@ -35,8 +35,6 @@ html, body {
     color: #555;
     margin-bottom: 20px;
 }
-
-/* Center button */
 NuxtLink {
     display: flex;
     justify-content: center;
