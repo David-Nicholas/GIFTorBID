@@ -15,19 +15,19 @@
                 <CustomButton :buttonText="'Sign out'" class="custom-btn" @activate="signOut" />
               </div>
 
-              <!-- Custom modifiable attributes section -->
+              <!-- Table modifiable attributes section -->
               <div class="info-container">
                 <p class="title-paragraph">Your Address</p>
                 <div v-for="(value, key) in filteredModifiableCustomAttributes()" :key="key">
                   <p class="attribute-key">{{ formatKey(key) }}</p>
-                  <input v-model="customEditableAttributes[key]" type="text" class="attribute-input"
+                  <input v-model="tableEditableAttributes[key]" type="text" class="attribute-input"
                     :placeholder="getPlaceholderForCustomAttribute(key)" />
                 </div>
                 <CustomButton :buttonText="'Change'" class="custom-btn change-all-btn"
-                  @activate="handleChangeAllCustomAttributes()" />
+                  @activate="updateUserInformations()" />
               </div>
 
-              <!-- Custom non-modifiable attributes section -->
+              <!-- Table non-modifiable attributes section -->
               <div class="info-container">
                 <p class="title-paragraph">Your Stats</p>
                 <div class="custom-non-modifiable-columns">
@@ -45,23 +45,12 @@
 
             <div class="right-column">
 
-              <!-- Default modifiable attributes section -->
-              <div class="info-container">
-                <p class="title-paragraph">Your Displayable Informations</p>
-                <div v-for="(value, key) in filteredModifiableAttributes()" :key="key">
-                  <p class="attribute-key">{{ formatKey(key) }}</p>
-                  <input v-model="editableAttributes[key]" type="text" class="attribute-input" />
-                </div>
-                <CustomButton :buttonText="'Change'" class="custom-btn change-all-btn"
-                  @activate="handleChangeAllAttributes()" />
-              </div>
-
               <!-- Default non-modifiable attributes section -->
               <div class="info-container">
                 <p class="title-paragraph">Your Account Informations</p>
                 <div v-for="(value, key) in filteredNonModifiableAttributes()" :key="key">
                   <p class="attribute-key">{{ formatKey(key) }}</p>
-                  <input v-model="nonEditableAttributes[key]" type="text" class="attribute-input" disabled />
+                  <input v-model="cognitoNonEditableAttributes[key]" type="text" class="attribute-input" disabled />
                 </div>
                 <p class="info-message">
                   Note: These details can only be updated by contacting our support team. Please reach out to support if
@@ -133,56 +122,96 @@ Hub.listen('auth', ({ payload }) => {
 });
 
 const router = useRouter();
+const config = useRuntimeConfig().public;
 
 const redirectTo = (page) => {
   router.push(page);
 };
 
-const defaultModifiableAttributes = ['phone_number', 'name'];
-const defaultNonModifiableAttributes = ['email', 'birthdate'];
-const customModifiableAttributes = ['custom:country', 'custom:region', 'custom:city', 'custom:address', 'custom:postal-code'];
-const customNonModifiableAttributes = ['custom:listings_number'];
+const cognitoNonModifiableAttributes = ['email', 'birthdate', 'phone_number', 'name'];
+const tableModifiableAttributes = ['country', 'county', 'city', 'address', 'postalCode'];
+const tableNonModifiableAttributes = ['avrageRating', 'listingsIDs', 'redeemedIDs'];
 
-const editableAttributes = ref({});
-const nonEditableAttributes = ref({});
-const customEditableAttributes = ref({});
-const customNonEditableAttributes = ref({});
+const cognitoNonEditableAttributes = ref({});
+const tableEditableAttributes = ref({});
+const tableNonEditableAttributes = ref({});
 
 const isDeletePopupVisible = ref(false);
 const isChangePopupVisible = ref(false);
 const isDeleteSuccessPopupVisible = ref(false);
 
 const showError = ref(false);
-// Default modifiable attributes
-async function fetchAndSetModifiableAttributes() {
+
+const informations = ref([]);
+
+const userID = ref('');
+
+async function getUserInformations() {
   try {
     const session = await fetchAuthSession();
-    if (session && session.tokens) {
-      const attributes = await fetchUserAttributes();
-      const filtered = Object.fromEntries(
-        Object.entries(attributes).filter(([key]) => defaultModifiableAttributes.includes(key))
-      );
-      editableAttributes.value = { ...filtered };
-    }
+    const token = session.tokens.idToken.toString();
+    const attributes = await fetchUserAttributes();
+    userID.value = attributes.sub;
+    const response = await fetch(`${config.api_url}/user/informations?userID=${userID.value}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `${token}` },
+    });
+
+    const data = await response.json();
+    informations.value = JSON.parse(data.body);
+
+    console.log(informations.value);
+
+    tableEditableAttributes.value = {
+      country: informations.value.country || '',
+      county: informations.value.county || '',
+      city: informations.value.city || '',
+      address: informations.value.address || '',
+      postalCode: informations.value.postalCode || ''
+    };
+
+    tableNonEditableAttributes.value = {
+      listingsIDs: informations.value.listingsIDs?.length || 0,
+      redeemedIDs: informations.value.redeemedIDs?.length || 0,
+      avrageRating: informations.value.averageRating || '0'
+    };
   } catch (error) {
-    console.error('Error fetching user attributes:', error);
+    console.error("Error fetching user:", error);
+    lising.value = [];
   }
 }
 
-async function handleChangeAllAttributes() {
+async function updateUserInformations() {
   try {
-    const userAttributes = Object.keys(editableAttributes.value).reduce((acc, key) => {
-      acc[key] = editableAttributes.value[key];
-      return acc;
-    }, {});
-
-    await updateUserAttributes({
-      userAttributes,
+    const session = await fetchAuthSession();
+    const token = session.tokens.idToken.toString();
+    const response = await fetch(`${config.api_url}/user/informations`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `${token}`,
+      },
+      body: JSON.stringify({
+        body: JSON.stringify({
+          country: tableEditableAttributes.value.country,
+          county: tableEditableAttributes.value.county,
+          city: tableEditableAttributes.value.city,
+          address: tableEditableAttributes.value.address,
+          postalCode: tableEditableAttributes.value.postalCode,
+          userID: userID.value
+        })
+      }),
     });
 
+    if (!response.ok) {
+      throw new Error("Failed to change informations");
+    }
+
+    console.log("Informations changed successfully");
     showChangePopup();
+    router.push("/account");
   } catch (error) {
-    console.error('Error updating all default attributes:', error);
+    console.error("Error updating user informations:", error);
   }
 }
 
@@ -193,117 +222,45 @@ async function fetchAndSetNonModifiableAttributes() {
     if (session && session.tokens) {
       const attributes = await fetchUserAttributes();
       const filtered = Object.fromEntries(
-        Object.entries(attributes).filter(([key]) => defaultNonModifiableAttributes.includes(key))
+        Object.entries(attributes).filter(([key]) => cognitoNonModifiableAttributes.includes(key))
       );
-      nonEditableAttributes.value = { ...filtered };
+      cognitoNonEditableAttributes.value = { ...filtered };
     }
   } catch (error) {
     console.error('Error fetching user attributes:', error);
   }
 }
 
-// Custom modifiable attributes
-async function fetchAndSetModifiableCustomAttributes() {
-  try {
-    const session = await fetchAuthSession();
-    if (session && session.tokens) {
-      const attributes = await fetchUserAttributes();
-      const filtered = Object.fromEntries(
-        Object.entries(attributes).filter(([key]) => customModifiableAttributes.includes(key))
-      );
-
-      customEditableAttributes.value = {
-        ...customModifiableAttributes.reduce((acc, key) => {
-          acc[key] = filtered[key] || '';
-          return acc;
-        }, {})
-      };
-      const hasEmptyAttributes = Object.values(customEditableAttributes.value).some(value => !value);
-      showError.value = hasEmptyAttributes;
-    }
-  } catch (error) {
-    console.error('Error fetching custom user attributes:', error);
-  }
-}
-
-async function handleChangeAllCustomAttributes() {
-  try {
-    const userAttributes = customModifiableAttributes.reduce((acc, key) => {
-      acc[key] = customEditableAttributes.value[key];
-      return acc;
-    }, {});
-
-    await updateUserAttributes({
-      userAttributes,
-    });
-
-    showChangePopup();
-  } catch (error) {
-    console.error('Error updating all custom attributes:', error);
-  }
-}
-
-// Custom non-modifiable attributes
-async function fetchAndSetNonModifiableCustomAttributes() {
-  try {
-    const session = await fetchAuthSession();
-    if (session && session.tokens) {
-      const attributes = await fetchUserAttributes();
-      const filtered = Object.fromEntries(
-        Object.entries(attributes).filter(([key]) => customNonModifiableAttributes.includes(key))
-      );
-
-      customNonEditableAttributes.value = {
-        ...customNonModifiableAttributes.reduce((acc, key) => {
-          acc[key] = filtered[key] || '';
-          return acc;
-        }, {})
-      };
-    }
-  } catch (error) {
-    console.error('Error fetching custom user attributes:', error);
-  }
-}
-
 function getPlaceholderForCustomAttribute(key) {
   switch (key) {
-    case 'custom:country':
+    case 'country':
       return 'Enter your country';
-    case 'custom:region':
+    case 'county':
       return 'Enter your region/state';
-    case 'custom:city':
+    case 'city':
       return 'Enter your city';
-    case 'custom:address':
+    case 'address':
       return 'Street, number, floor, apartment';
-    case 'custom:postal-code':
+    case 'postalCode':
       return 'Enter your postal code';
-    case 'custom:listings_number':
-      return '0';
+    case 'listingsIDs':
+      return informations.value.listingsIDs.length;
+    case 'redeemedIDs':
+      return informations.value.listingsIDs.length;
+    case 'avrageRating':
+      return informations.value.avrageRating;
     default:
       return 'Enter value';
   }
 }
-
-watchEffect(() => {
-  fetchAndSetModifiableAttributes();
-  fetchAndSetNonModifiableAttributes();
-  fetchAndSetModifiableCustomAttributes();
-  fetchAndSetNonModifiableCustomAttributes();
-});
-
-// Helpers
-function filteredModifiableAttributes() {
-  return editableAttributes.value || {};
-}
-
 function filteredNonModifiableAttributes() {
-  return nonEditableAttributes.value || {};
+  return cognitoNonEditableAttributes.value || {};
 }
 
 function filteredModifiableCustomAttributes() {
   return {
-    ...customModifiableAttributes.reduce((acc, key) => {
-      acc[key] = customEditableAttributes.value[key] || '';
+    ...tableModifiableAttributes.reduce((acc, key) => {
+      acc[key] = tableEditableAttributes.value[key] || '';
       return acc;
     }, {})
   };
@@ -311,8 +268,8 @@ function filteredModifiableCustomAttributes() {
 
 function filteredNonModifiableCustomAttributes() {
   return {
-    ...customNonModifiableAttributes.reduce((acc, key) => {
-      acc[key] = customNonEditableAttributes.value[key] || '';
+    ...tableNonModifiableAttributes.reduce((acc, key) => {
+      acc[key] = tableNonEditableAttributes.value[key] || '';
       return acc;
     }, {})
   };
@@ -320,7 +277,8 @@ function filteredNonModifiableCustomAttributes() {
 
 function formatKey(key) {
   return key
-    .replace(/custom:/g, '')
+    .replace(/IDs$/, '')
+    .replace(/([A-Z])/g, ' $1')
     .replace(/-/g, ' ')
     .replace(/_/g, ' ')
     .toLowerCase()
@@ -361,11 +319,10 @@ function showChangePopup() {
 
 function closeChangePopup() {
   isChangePopupVisible.value = false;
-  fetchAndSetModifiableAttributes();
   fetchAndSetNonModifiableAttributes();
-  fetchAndSetModifiableCustomAttributes();
-  fetchAndSetNonModifiableCustomAttributes();
 }
+onMounted(fetchAndSetNonModifiableAttributes);
+onMounted(getUserInformations);
 </script>
 
 <style scoped>
