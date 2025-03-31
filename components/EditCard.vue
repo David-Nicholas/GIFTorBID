@@ -7,6 +7,7 @@
         <div class="info-section">
             <h2 class="listing-title">{{ listing.name }}</h2>
             <p class="listing-type">{{ listing.type.toUpperCase() }}</p>
+            <p class="listing-type">{{ listing.status.toUpperCase() }}</p>
         </div>
 
         <div class="action-section">

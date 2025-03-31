@@ -35,7 +35,7 @@
                     class="custom-attribute-column">
                     <p class="custom-attribute-key">{{ formatKey(key) }}</p>
                     <div class="custom-attribute-box">
-                      <NuxtLink to="/posts">{{ value || '0' }}</NuxtLink>
+                      <NuxtLink :to="routeForAttribute(key)">{{ value || '0' }}</NuxtLink>
                     </div>
                   </div>
                 </div>
@@ -107,8 +107,8 @@ definePageMeta({
 
 import { Authenticator } from "@aws-amplify/ui-vue";
 import "@aws-amplify/ui-vue/styles.css";
-import { ref, watchEffect } from 'vue';
-import { fetchUserAttributes, updateUserAttributes, deleteUser, fetchAuthSession } from 'aws-amplify/auth';
+import { ref } from 'vue';
+import { fetchUserAttributes, deleteUser, fetchAuthSession } from 'aws-amplify/auth';
 import { useRouter } from 'vue-router';
 import { Hub } from 'aws-amplify/utils';
 import WarnMessage from "~/components/WarnMessage.vue";
@@ -130,7 +130,7 @@ const redirectTo = (page) => {
 
 const cognitoNonModifiableAttributes = ['email', 'birthdate', 'phone_number', 'name'];
 const tableModifiableAttributes = ['country', 'county', 'city', 'address', 'postalCode'];
-const tableNonModifiableAttributes = ['avrageRating', 'listingsIDs', 'redeemedIDs'];
+const tableNonModifiableAttributes = ['averageRating', 'listingsIDs', 'redeemedIDs'];
 
 const cognitoNonEditableAttributes = ref({});
 const tableEditableAttributes = ref({});
@@ -170,10 +170,12 @@ async function getUserInformations() {
       postalCode: informations.value.postalCode || ''
     };
 
+    showError.value = Object.values(tableEditableAttributes.value).some(attr => attr === '');
+
     tableNonEditableAttributes.value = {
       listingsIDs: informations.value.listingsIDs?.length || 0,
       redeemedIDs: informations.value.redeemedIDs?.length || 0,
-      avrageRating: informations.value.averageRating || '0'
+      averageRating: informations.value.averageRating || '0'
     };
   } catch (error) {
     console.error("Error fetching user:", error);
@@ -247,12 +249,25 @@ function getPlaceholderForCustomAttribute(key) {
       return informations.value.listingsIDs.length;
     case 'redeemedIDs':
       return informations.value.listingsIDs.length;
-    case 'avrageRating':
-      return informations.value.avrageRating;
+    case 'averageRating':
+      return informations.value.averageRating;
     default:
       return 'Enter value';
   }
 }
+
+function routeForAttribute(key) {
+  switch (key) {
+    case 'averageRating':
+      return '/reviews';
+    case 'listingsIDs':
+      return '/posts';
+    case 'redeemedIDs':
+      return '/aquisitions';
+  }
+}
+
+
 function filteredNonModifiableAttributes() {
   return cognitoNonEditableAttributes.value || {};
 }
