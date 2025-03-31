@@ -1,7 +1,7 @@
 <template>
     <div class="posts-root">
         <div v-if="!isAuthenticated" class="unauthenticated-container">
-            <p class="unauthenticated-message">You need to be logged to see you listings.</p>
+            <p class="info-message">You need to be logged to see you listings.</p>
             <NuxtLink to="/account">
                 <CustomButton :buttonText="'Go to Account'" />
             </NuxtLink>
@@ -17,11 +17,11 @@
                 </NuxtLink>
             </div>
             <div v-if="isLoading" class="loading-container">
-                <p>Loading your listings...</p>
+                <p class="info-message">Loading your listings...</p>
             </div>
 
             <div v-else-if="listings.length === 0" class="empty-message">
-                <p>You have not created any listings yet.</p>
+                <p class="info-message">You have not created any listings yet.</p>
                 <div class="image-container">
                     <img src="../assets/image.png" alt="mascot">
                 </div>
@@ -92,7 +92,7 @@ onMounted(fetchListings);
     margin-top: 20px;
 }
 
-.unauthenticated-message {
+.info-message {
     font-size: 18px;
     margin-bottom: 10px;
     color: #555;

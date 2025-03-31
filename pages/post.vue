@@ -116,7 +116,7 @@ definePageMeta({
 });
 
 import { ref, onMounted } from 'vue';
-import { fetchUserAttributes, updateUserAttributes, fetchAuthSession } from 'aws-amplify/auth';
+import { fetchUserAttributes, fetchAuthSession } from 'aws-amplify/auth';
 
 const config = useRuntimeConfig().public;
 const isAuthenticated = ref(false);
@@ -165,7 +165,6 @@ async function fetchAndSetUserAttributes() {
       const attributes = await fetchUserAttributes();
       form.value.sellerEmail = attributes.email || '';
       sub.value = attributes.sub;
-      userPosts.value = attributes["custom:listings_number"] ? parseInt(attributes["custom:listings_number"], 10) : 0;
     }
   } catch (error) {
     isAuthenticated.value = false;
@@ -259,13 +258,9 @@ async function submitListing() {
 
     if (!response.ok) throw new Error('Failed to submit listing');
 
-    const newPostCount = userPosts.value ? parseInt(userPosts.value, 10) + 1 : 1;
-    await updateUserAttributes({ userAttributes: { "custom:listings_number": newPostCount.toString() } });
-
     showPopup();
     form.value = { name: '', type: '', category: '', description: '', sellerEmail: form.value.sellerEmail, images: [] };
     imagePreviews.value = [];
-    userPosts.value = newPostCount;
     selectedDuration.value = 7;
 
   } catch (error) {
@@ -295,6 +290,11 @@ onMounted(fetchAndSetUserAttributes);
 </script>
 
 <style scoped>
+.custom-btn {
+    width: 100%;
+    margin-top: 8px;
+}
+
 .unauthenticated-container {
   text-align: center;
   margin-top: 20px;
@@ -353,15 +353,14 @@ onMounted(fetchAndSetUserAttributes);
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
+  height: 90vh;
   padding: 0 15px;
 }
 
 .content-container {
   display: flex;
   justify-content: center;
-  width: 100%;
-  max-width: 600px;
+  width: 98%;
 }
 
 .info-container {

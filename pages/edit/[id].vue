@@ -4,7 +4,8 @@
         <div class="main-container">
             <div class="content-container">
                 <div class="info-container">
-                    <p class="contact-form-header">View and Edit Listing</p>
+                    <p class="title-style">View</p>
+                    <p class="paragraph-style">STATUS: {{ listing.status.toUpperCase() }}</p>
                     <form @submit.prevent="handleSubmit">
                         <div class="form-group">
                             <label class="attribute-key" for="name">Listing Name</label>
@@ -24,7 +25,7 @@
 
                         <div class="form-group">
                             <label class="attribute-key" for="winnerEmail">Winner Email</label>
-                            <input v-model="listing.winnerEmail" type="text" id="winnerEmail" class="attribute-input"
+                            <input v-model="listing.redeemerEmail" type="text" id="winnerEmail" class="attribute-input"
                                 disabled :placeholder="winnerPlaceholder" />
                         </div>
 
@@ -59,7 +60,8 @@
                         </div>
 
                         <div class="form-group">
-                            <label class="attribute-key">Upload Images (Max 3) / Current: {{ listing.images.length }}</label>
+                            <label class="attribute-key">Upload Images (Max 3) / Current: {{ listing.images.length
+                            }}</label>
                             <input type="file" accept="image/jpeg, image/png" multiple @change="handleImageUpload"
                                 class="attribute-input" />
                             <div v-if="imagePreviews.length" class="image-preview-container">
@@ -68,12 +70,30 @@
                             </div>
                         </div>
 
-                        <div class="form-group">
+                        <div v-if="!isRedeemed" class="form-group">
                             <CustomButton :buttonText="'Save Changes'" class="custom-btn" @activate="updateListing" />
                             <CustomButton :buttonText="'Delete Listing'" class="custom-btn custom-btnDelete"
                                 @activate="deleteListing" />
                         </div>
                     </form>
+                </div>
+                <div v-if="isOrdered" class="info-container">
+                    <p class="title-style">Order info</p>
+                    <p class="paragraph-style">AWB {{ order.awb }}</p>
+                    <p class="paragraph-style" v-if="timeLeft && !timeLeft.ended">
+                        Time until you can review the redeemer:
+                        <span v-if="timeLeft.days > 0">
+                            {{ timeLeft.days }} day<span v-if="timeLeft.days !== 1">s</span>,
+                            {{ timeLeft.hours }} hour<span v-if="timeLeft.hours !== 1">s</span>
+                        </span>
+                        <span v-else>
+                            {{ timeLeft.hours.toString().padStart(2, '0') }}:
+                            {{ timeLeft.minutes.toString().padStart(2, '0') }}:
+                            {{ timeLeft.seconds.toString().padStart(2, '0') }}
+                        </span>
+                    </p>
+
+                    <p v-else-if="timeLeft?.ended">Review the redeemer</p>
                 </div>
             </div>
         </div>
@@ -116,21 +136,57 @@ import { useState } from "#app";
 import { useRouter } from "vue-router";
 import { ref, computed } from 'vue';
 import { fetchUserAttributes, updateUserAttributes, fetchAuthSession } from 'aws-amplify/auth';
+import { DateTime } from 'luxon';
+
+const now = ref(DateTime.now());
 
 const router = useRouter();
 const selectedListing = useState("selectedListing");
 const config = useRuntimeConfig().public;
 const userPosts = ref(0);
-const sub = ref('');
+const userID = ref('');
 const imagePreviews = ref([]);
+const isRedeemed = ref(false);
+const isOrdered = ref(false);
 
 if (!selectedListing.value) {
     console.error("No listing found in state. Redirecting...");
     router.push("/posts");
 }
 
+const timeLeft = computed(() => {
+    if (order.value.expirationDate) {
+        const end = DateTime.fromISO(order.value.expirationDate);
+        const diff = end.diff(now.value, ['days', 'hours', 'minutes', 'seconds']).toObject();
+
+        if (end <= now.value) {
+            return { ended: true };
+        }
+
+        return {
+            days: Math.floor(diff.days || 0),
+            hours: Math.floor(diff.hours || 0),
+            minutes: Math.floor(diff.minutes || 0),
+            seconds: Math.floor(diff.seconds || 0),
+            ended: false,
+        };
+    }
+    return null;
+});
+
+let interval;
+onMounted(() => {
+    interval = setInterval(() => {
+        now.value = DateTime.now();
+    }, 1000);
+});
+
+onUnmounted(() => {
+    clearInterval(interval);
+});
 
 const listing = ref(selectedListing.value);
+const order = ref([]);
 
 const form = ref({
     name: listing.value.name,
@@ -159,12 +215,33 @@ const bids = computed(() => {
 });
 
 
-async function fetchAndSetUserAttributes() {
-    try {
-        const attributes = await fetchUserAttributes();
-        userPosts.value = attributes["custom:listings_number"] ? parseInt(attributes["custom:listings_number"], 10) : 0;
-    } catch (error) {
-        console.error('Error fetching user attributes:', error);
+async function verifyStauts() {
+    if (listing.value.status === "available") {
+        isRedeemed.value = false;
+    } else {
+        isRedeemed.value = true;
+        if (listing.value.status === "ordered") {
+            isOrdered.value = true;
+            try {
+                const attributes = await fetchUserAttributes();
+                const session = await fetchAuthSession();
+                const token = session.tokens.idToken.toString();
+                userID.value = attributes.sub;
+                const response = await fetch(`${config.api_url}/user/orders?orderID=${listing.value.listingID}&userID=${userID.value}`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `${token}` },
+                });
+
+                const data = await response.json();
+                order.value = JSON.parse(data.body);
+                console.log("Order found: ", order.value);
+            } catch {
+                console.error("Error fetching order: ", error);
+            }
+        } else {
+            isOrdered.value = false;
+        }
+
     }
 }
 
@@ -173,7 +250,7 @@ async function deleteListingTrigger() {
         const attributes = await fetchUserAttributes();
         const session = await fetchAuthSession();
         const token = session.tokens.idToken.toString();
-        sub.value = attributes.sub;
+        userID.value = attributes.sub;
         const response = await fetch(`${config.api_url}/user/listings/listing`, {
             method: "DELETE",
             headers: { 'Content-Type': 'application/json', 'Authorization': `${token}` },
@@ -247,12 +324,12 @@ async function changeListingTrigger() {
             headers: { 'Content-Type': 'application/json', 'Authorization': `${token}` },
             body: JSON.stringify({
                 body: JSON.stringify({
-                listingID: listing.value.listingID,
-                sellerEmail: listing.value.sellerEmail,
-                sub: sub.value,
-                description: form.value.description,
-                name: form.value.name,
-                images: form.value.images,
+                    listingID: listing.value.listingID,
+                    sellerEmail: listing.value.sellerEmail,
+                    sub: sub.value,
+                    description: form.value.description,
+                    name: form.value.name,
+                    images: form.value.images,
                 })
             }),
         });
@@ -295,7 +372,7 @@ function confirmDeletion() {
 function cancelDeletion() {
     isDeletionConfirmationVisible.value = false;
 }
-onMounted(fetchAndSetUserAttributes);
+onMounted(verifyStauts);
 </script>
 
 <style scoped>
@@ -343,10 +420,8 @@ onMounted(fetchAndSetUserAttributes);
 }
 
 .content-container {
-    display: flex;
     justify-content: center;
-    width: 100%;
-    max-width: 600px;
+    width: 98%;
 }
 
 .info-container {
@@ -392,11 +467,10 @@ onMounted(fetchAndSetUserAttributes);
 
 .custom-btn {
     width: 100%;
+    margin-top: 8px;
 }
 
 .custom-btnDelete {
-    margin-top: 8px;
-    width: 100%;
     background-color: #EBA92E;
 }
 
@@ -429,8 +503,20 @@ onMounted(fetchAndSetUserAttributes);
     width: 100%;
 }
 
-.contact-form-header {
+.title-style {
     font-size: 24px;
+    margin-bottom: 16px;
+    text-align: center;
+}
+
+.paragraph-style {
+    font-size: 20px;
+    margin-bottom: 16px;
+    text-align: center;
+}
+
+.contact-form-status {
+    font-size: 14px;
     margin-bottom: 16px;
     text-align: center;
 }
