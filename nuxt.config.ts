@@ -28,7 +28,8 @@ export default defineNuxtConfig({
       oauth_clientid: process.env.OAUTH_CLIENTID,
       oauth_domain: process.env.OAUTH_DOMAIN,
 
-      api_url: process.env.API_URL
+      api_url: process.env.API_URL,
+      web_socket_url: process.env.WEB_SOCKET_URL
     }
   }
 })

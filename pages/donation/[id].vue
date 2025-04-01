@@ -75,6 +75,19 @@ import { useRoute } from 'vue-router';
 import { fetchAuthSession, fetchUserAttributes } from 'aws-amplify/auth';
 import { useState } from "#app";
 
+import { watch } from 'vue'
+import { useWebSocket } from '~/utils/useWebSocket'
+
+const { lastMessage } = useWebSocket()
+
+watch(lastMessage, (msg) => {
+  if (msg && msg.type === 'dontion') {
+    if(msg.listing == listing.value.listingID){
+      fetchListings();
+    }
+  }
+})
+
 const route = useRoute();
 const isLoading = ref(true);
 const config = useRuntimeConfig().public;

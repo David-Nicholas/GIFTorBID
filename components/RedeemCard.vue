@@ -201,6 +201,11 @@ onMounted(verifyStauts);
     overflow: hidden;
 }
 
+.paragraph-style {
+    font-size: 12px;
+    text-align: center;
+}
+
 .image-container {
     margin: auto;
     aspect-ratio: 16 / 9;

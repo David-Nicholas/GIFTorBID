@@ -52,6 +52,16 @@ definePageMeta({
 
 import { ref, onMounted, computed } from 'vue';
 import Card from '~/components/Card.vue';
+import { watch } from 'vue'
+import { useWebSocket } from '~/utils/useWebSocket'
+
+const { lastMessage } = useWebSocket()
+
+watch(lastMessage, (msg) => {
+  if (msg && msg.type === 'donation') {
+    fetchListings();
+  }
+})
 
 const config = useRuntimeConfig().public;
 const listings = ref([]);
@@ -66,7 +76,6 @@ const selectedStatus = ref("all");
 
 async function fetchListings() {
   isLoading.value = true;
-
   try {
 
     const response = await fetch(`${config.api_url}/listings/donations`, {

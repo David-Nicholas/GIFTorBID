@@ -53,6 +53,16 @@ definePageMeta({
 
 import { ref, onMounted, computed } from 'vue';
 import Card from '~/components/Card.vue';
+import { watch } from 'vue'
+import { useWebSocket } from '~/utils/useWebSocket'
+
+const { lastMessage } = useWebSocket()
+
+watch(lastMessage, (msg) => {
+  if (msg && msg.type === 'auction') {
+    fetchListings();
+  }
+})
 
 const config = useRuntimeConfig().public;
 const listings = ref([]);
