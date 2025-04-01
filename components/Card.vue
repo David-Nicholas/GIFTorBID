@@ -21,6 +21,7 @@
                 </p>
 
                 <p v-else-if="timeLeft?.ended">Auction Ended</p>
+                <p v-if="listing.bids[0]" class="listing-type">Highest bid: {{ listing.bids[0].amount }} RON</p>
             </div>
         </div>
 
