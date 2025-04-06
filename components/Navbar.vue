@@ -19,8 +19,9 @@
                 <NuxtLink to="/post" class="nav-btn" active-class="active-link">POST</NuxtLink>
                 <NuxtLink to="/account" class="nav-btn" active-class="active-link">ACCOUNT</NuxtLink>
                 <NuxtLink to="/support" class="nav-btn" active-class="active-link">SUPPORT</NuxtLink>
+                <NuxtLink to="/notifications" class="nav-btn" active-class="active-link">NOTIFICATIONS</NuxtLink>
             </div>
-
+            
         </div>
     </nav>
 </template>

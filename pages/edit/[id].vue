@@ -51,8 +51,8 @@
                             <div v-if="listing.type === 'auction'" class="bids-table">
                                 <h2 class="text-xl font-semibold mt-4 mb-2">Bids</h2>
 
-                                <UTable v-if="bids.length > 0" :rows="bids"
-                                    :columns="[{ key: 'bidder', label: 'Bidder' }, { key: 'amount', label: 'Amount' }, { key: 'date', label: 'Date' }]" />
+                                <UTable v-if="bids.length > 0" :rows="listing.bids" sticky class="max-h-[200px]"
+                                    :columns="[{ key: 'bidderEmail', label: 'Bidder' }, { key: 'amount', label: 'Amount' }, { key: 'time', label: 'Date' }]" />
 
                                 <p v-else class="text-gray-500">No bids have been placed yet for this acution.</p>
                             </div>
@@ -61,7 +61,7 @@
 
                         <div class="form-group">
                             <label class="attribute-key">Upload Images (Max 3) / Current: {{ listing.images.length
-                            }}</label>
+                                }}</label>
                             <input type="file" accept="image/jpeg, image/png" multiple @change="handleImageUpload"
                                 class="attribute-input" />
                             <div v-if="imagePreviews.length" class="image-preview-container">
@@ -93,7 +93,13 @@
                         </span>
                     </p>
 
-                    <p v-else-if="timeLeft?.ended">Review the redeemer</p>
+                    <div v-else-if="timeLeft?.ended">
+                        <button v-if="!order.redeemerReviewed" class="button-style"
+                            :style="{ backgroundColor: buttonColor }" @click="reviewSeller">
+                            Review the seller
+                        </button>
+                        <p v-else>Seller reviewed</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -123,6 +129,28 @@
                 <CustomButton :buttonText="'Cancel'" class="custom-btn cancel-btn" @activate="cancelChange" />
             </div>
         </div>
+        <!-- Review Popup -->
+        <div v-if="isDisplayReviewVisible" class="popup">
+            <div class="popup-content">
+                <div class="form-group">
+                    <label class="attribute-key" for="description">Message</label>
+                    <textarea v-model="description" id="description" rows="4" class="attribute-input" />
+                </div>
+
+                <div class="form-group">
+                    <label class="attribute-key">Rating</label>
+                    <div class="rating-container">
+                        <div v-for="num in 5" :key="num" class="rating-circle" :class="{ selected: rating === num }"
+                            @click="setRating(num)">
+                            {{ num }}
+                        </div>
+                    </div>
+                </div>
+
+                <CustomButton :buttonText="'Yes, Confirm'" class="custom-btn" @activate="confirmReview" />
+                <CustomButton :buttonText="'Cancel'" class="custom-btn cancel-btn" @activate="cancelReview" />
+            </div>
+        </div>
     </div>
 </template>
 
@@ -148,6 +176,7 @@ const userID = ref('');
 const imagePreviews = ref([]);
 const isRedeemed = ref(false);
 const isOrdered = ref(false);
+const isDisplayReviewVisible = ref(false);
 
 if (!selectedListing.value) {
     console.error("No listing found in state. Redirecting...");
@@ -214,6 +243,9 @@ const bids = computed(() => {
     return [];
 });
 
+const buttonColor = computed(() => {
+    return listing.type === "auction" ? "#EBA92E" : "#35A45F";
+});
 
 async function verifyStauts() {
     if (listing.value.status === "available") {
@@ -231,17 +263,16 @@ async function verifyStauts() {
                     method: 'GET',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `${token}` },
                 });
-
                 const data = await response.json();
+                console.log("Reponse found: ", data);
                 order.value = JSON.parse(data.body);
                 console.log("Order found: ", order.value);
-            } catch {
+            } catch (error) {
                 console.error("Error fetching order: ", error);
             }
         } else {
             isOrdered.value = false;
         }
-
     }
 }
 
@@ -422,6 +453,22 @@ onMounted(verifyStauts);
 .content-container {
     justify-content: center;
     width: 98%;
+}
+
+.button-style {
+    width: 100%;
+    margin-top: 8px;
+    padding: 8px;
+    font-size: 14px;
+    font-weight: bold;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.button-style:hover {
+    opacity: 0.85;
 }
 
 .info-container {

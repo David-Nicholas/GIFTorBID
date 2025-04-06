@@ -149,6 +149,7 @@ const userID = ref('');
 async function getUserInformations() {
   try {
     const session = await fetchAuthSession();
+    if (session && session.tokens) {
     const token = session.tokens.idToken.toString();
     const attributes = await fetchUserAttributes();
     userID.value = attributes.sub;
@@ -170,23 +171,28 @@ async function getUserInformations() {
       postalCode: informations.value.postalCode || ''
     };
 
-    showError.value = Object.values(tableEditableAttributes.value).some(attr => attr === '');
+    showError.value = Object.values(tableEditableAttributes.value).some(attr => attr.trim() === '');
 
     tableNonEditableAttributes.value = {
       listingsIDs: informations.value.listingsIDs?.length || 0,
       redeemedIDs: informations.value.redeemedIDs?.length || 0,
       averageRating: informations.value.averageRating || '0'
     };
+  }
   } catch (error) {
     console.error("Error fetching user:", error);
-    lising.value = [];
   }
 }
+
 
 async function updateUserInformations() {
   try {
     const session = await fetchAuthSession();
     const token = session.tokens.idToken.toString();
+    showError.value = Object.values(tableEditableAttributes.value).some(attr => attr.trim() === '');
+    if(showError.value) {
+      return;
+    }
     const response = await fetch(`${config.api_url}/user/informations`, {
       method: 'PUT',
       headers: {
@@ -209,7 +215,7 @@ async function updateUserInformations() {
       throw new Error("Failed to change informations");
     }
 
-    console.log("Informations changed successfully");
+    console.log("Informations changed successfully: ", response);
     showChangePopup();
     router.push("/account");
   } catch (error) {
