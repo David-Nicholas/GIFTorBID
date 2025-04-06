@@ -216,13 +216,13 @@ async function createReview() {
         });
 
         if (!response.ok) {
-            throw new Error("Failed to create order");
+            throw new Error("Failed to create review");
         }
 
-        console.log("Order made successfully");
+        console.log("Review made successfully");
         location.reload();
     } catch (error) {
-        console.error("Error creating order:", error);
+        console.error("Error creating review:", error);
     }
 }
 

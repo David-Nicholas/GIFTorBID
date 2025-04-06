@@ -96,9 +96,9 @@
                     <div v-else-if="timeLeft?.ended">
                         <button v-if="!order.redeemerReviewed" class="button-style"
                             :style="{ backgroundColor: buttonColor }" @click="reviewSeller">
-                            Review the seller
+                            Review the redeemer
                         </button>
-                        <p v-else>Seller reviewed</p>
+                        <p v-else class="paragraph-style">Seller reviewed</p>
                     </div>
                 </div>
             </div>
@@ -177,6 +177,15 @@ const imagePreviews = ref([]);
 const isRedeemed = ref(false);
 const isOrdered = ref(false);
 const isDisplayReviewVisible = ref(false);
+const orderID = ref('');
+const userEmail = ref('');
+
+const description = ref('');
+const rating = ref(0);
+
+const setRating = (value) => {
+    rating.value = value;
+};
 
 if (!selectedListing.value) {
     console.error("No listing found in state. Redirecting...");
@@ -274,6 +283,52 @@ async function verifyStauts() {
             isOrdered.value = false;
         }
     }
+}
+
+async function createReview() {
+    try {
+        const attributes = await fetchUserAttributes();
+        const session = await fetchAuthSession();
+        const token = session.tokens.idToken.toString();
+        userID.value = attributes.sub;
+        userEmail.value = attributes.email || ''
+        orderID.value = `order-${listing.value.listingID}`;
+        const response = await fetch(`${config.api_url}/user/review`, {
+            method: "POST",
+            headers: { 'Content-Type': 'application/json', 'Authorization': `${token}` },
+            body: JSON.stringify({
+                body: JSON.stringify({
+                    writerEmail: userEmail.value,
+                    orderID: orderID.value,
+                    message: description.value,
+                    rating: rating.value,
+                    sub: userID.value,
+                })
+            }),
+        });
+
+        if (!response.ok) {
+            throw new Error("Failed to create review");
+        }
+
+        console.log("Review made successfully");
+        order.redeemerReviewed = true;
+    } catch (error) {
+        console.error("Error creating review:", error);
+    }
+}
+
+function reviewSeller() {
+    isDisplayReviewVisible.value = true;
+}
+
+function confirmReview() {
+    isDisplayReviewVisible.value = false;
+    createReview();
+}
+
+function cancelReview() {
+    isDisplayReviewVisible.value = false;
 }
 
 async function deleteListingTrigger() {
@@ -586,6 +641,31 @@ onMounted(verifyStauts);
 .tab.active {
     background-color: #2596be;
     font-weight: bold;
+}
+
+.rating-container {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.rating-circle {
+    width: 40px;
+    height: 40px;
+    background-color: #e0e0e0;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 40px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.2s;
+    user-select: none;
+}
+
+.rating-circle.selected {
+    background-color: #2596be;
+    color: white;
 }
 
 

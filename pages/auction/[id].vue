@@ -95,6 +95,7 @@
         <p class="title-paragraph">Rating: {{ statistincs.averageRating }}</p>
         <UTable v-if="statistincs.reviews?.length > 0" :rows="statistincs.reviews" sticky class="max-h-[200px] mt-4" :columns="[
           { key: 'message', label: 'Message' },
+          { key: 'writerEmail', label: 'Reviewer' },
           { key: 'rating', label: 'Rating' }
         ]" />
         <p v-else class="text-gray-500 mt-4">No reviews for this seller yet.</p>
