@@ -11,7 +11,7 @@
         </div>
 
         <div class="action-section">
-            <button v-if="isRedeemed" class="show-more-btn" :style="{ backgroundColor: buttonColor }"
+            <button v-if="isRedeemed" class="button-style" :style="{ backgroundColor: buttonColor }"
                 @click="orderProduct">
                 Order
             </button>
@@ -30,8 +30,13 @@
                             {{ timeLeft.seconds.toString().padStart(2, '0') }}
                         </span>
                     </p>
-
-                    <p v-else-if="timeLeft?.ended">Review the seller</p>
+                    <div v-else-if="timeLeft?.ended">
+                        <button v-if="!order.sellerReviewed" class="button-style"
+                            :style="{ backgroundColor: buttonColor }" @click="reviewSeller">
+                            Review the seller
+                        </button>
+                        <p v-else>Seller reviewed</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -43,6 +48,28 @@
                 bouth you and the seller will recive an email with the inforamtions about the shpping details.</p>
             <CustomButton :buttonText="'Yes, Confirm'" class="custom-btn" @activate="confirmOrder" />
             <CustomButton :buttonText="'Cancel'" class="custom-btn cancel-btn" @activate="cancelOrder" />
+        </div>
+    </div>
+    <!-- Review Popup -->
+    <div v-if="isDisplayReviewVisible" class="popup">
+        <div class="popup-content">
+            <div class="form-group">
+                <label class="attribute-key" for="description">Message</label>
+                <textarea v-model="description" id="description" rows="4" class="attribute-input" />
+            </div>
+
+            <div class="form-group">
+                <label class="attribute-key">Rating</label>
+                <div class="rating-container">
+                    <div v-for="num in 5" :key="num" class="rating-circle" :class="{ selected: rating === num }"
+                        @click="setRating(num)">
+                        {{ num }}
+                    </div>
+                </div>
+            </div>
+
+            <CustomButton :buttonText="'Yes, Confirm'" class="custom-btn" @activate="confirmReview" />
+            <CustomButton :buttonText="'Cancel'" class="custom-btn cancel-btn" @activate="cancelReview" />
         </div>
     </div>
 </template>
@@ -65,6 +92,15 @@ const order = ref([]);
 const isRedeemed = ref(false);
 const isOrdered = ref(false);
 const userID = ref('');
+const isDisplayReviewVisible = ref(false);
+const orderID = ref('');
+
+const description = ref('');
+const rating = ref(0);
+
+const setRating = (value) => {
+    rating.value = value;
+};
 
 const timeLeft = computed(() => {
     if (order.value.expirationDate) {
@@ -108,6 +144,7 @@ async function verifyStauts() {
                 const attributes = await fetchUserAttributes();
                 const session = await fetchAuthSession();
                 const token = session.tokens.idToken.toString();
+                console.log(props.listing.listingID);
                 userID.value = attributes.sub;
                 const response = await fetch(`${config.api_url}/user/orders?orderID=${props.listing.listingID}&userID=${userID.value}`, {
                     method: 'GET',
@@ -132,7 +169,7 @@ async function createOrder() {
         const attributes = await fetchUserAttributes();
         const session = await fetchAuthSession();
         const token = session.tokens.idToken.toString();
-        sub.value = attributes.sub;
+        userID.value = attributes.sub;
         const response = await fetch(`${config.api_url}/user/orders`, {
             method: "POST",
             headers: { 'Content-Type': 'application/json', 'Authorization': `${token}` },
@@ -141,7 +178,7 @@ async function createOrder() {
                     listingID: props.listing.listingID,
                     sellerEmail: props.listing.sellerEmail,
                     redeemerEmail: props.listing.redeemerEmail,
-                    sub: sub.value,
+                    sub: userID.value,
                 })
             }),
         });
@@ -156,6 +193,52 @@ async function createOrder() {
         console.error("Error creating order:", error);
     }
 }
+
+async function createReview() {
+    try {
+        const attributes = await fetchUserAttributes();
+        const session = await fetchAuthSession();
+        const token = session.tokens.idToken.toString();
+        userID.value = attributes.sub;
+        orderID.value = `order-${props.listing.listingID}`;
+        const response = await fetch(`${config.api_url}/user/review`, {
+            method: "POST",
+            headers: { 'Content-Type': 'application/json', 'Authorization': `${token}` },
+            body: JSON.stringify({
+                body: JSON.stringify({
+                    writerEmail: props.listing.redeemerEmail,
+                    orderID: orderID.value,
+                    message: description.value,
+                    rating: rating.value,
+                    sub: userID.value,
+                })
+            }),
+        });
+
+        if (!response.ok) {
+            throw new Error("Failed to create order");
+        }
+
+        console.log("Order made successfully");
+        location.reload();
+    } catch (error) {
+        console.error("Error creating order:", error);
+    }
+}
+
+function reviewSeller() {
+    isDisplayReviewVisible.value = true;
+}
+
+function confirmReview() {
+    isDisplayReviewVisible.value = false;
+    createReview();
+}
+
+function cancelReview() {
+    isDisplayReviewVisible.value = false;
+}
+
 
 function orderProduct() {
     isConfirmationVisible.value = true;
@@ -244,8 +327,9 @@ onMounted(verifyStauts);
     text-align: center;
 }
 
-.show-more-btn {
+.button-style {
     width: 100%;
+    margin-top: 8px;
     padding: 8px;
     font-size: 14px;
     font-weight: bold;
@@ -255,7 +339,7 @@ onMounted(verifyStauts);
     cursor: pointer;
 }
 
-.show-more-btn:hover {
+.button-style:hover {
     opacity: 0.85;
 }
 
@@ -286,5 +370,44 @@ onMounted(verifyStauts);
 .popup .custom-btn {
     margin-top: 16px;
     width: 100%;
+}
+
+.attribute-key {
+    margin-bottom: 4px;
+    font-size: 16px;
+}
+
+.attribute-input {
+    width: 100%;
+    padding: 8px;
+    border: 1.5px solid #8e8d8d;
+    font-size: 16px;
+    box-sizing: border-box;
+    margin-bottom: 8px;
+}
+
+.rating-container {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.rating-circle {
+    width: 40px;
+    height: 40px;
+    background-color: #e0e0e0;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 40px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.2s;
+    user-select: none;
+}
+
+.rating-circle.selected {
+    background-color: #2596be;
+    color: white;
 }
 </style>

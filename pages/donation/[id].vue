@@ -40,11 +40,20 @@
                 </div>
               </div>
               <div v-else>
-                <CustomButton :buttonText="'Redeem Listing'" class="custom-btn" @activate="redeemItem()" />
-                <p class="info-message">
-                  Note: This will assign you as the redeemer of the listing for 2 days in which you have time to order
-                  it trough postal office.
-                </p>
+                <div v-if="isAuthFinish">
+                  <NuxtLink to="/account">
+                    <CustomButton :buttonText="'Go to Account'" class="custom-btn" />
+                  </NuxtLink>
+                  <p class="unauthenticated-message">One more step. You need to go to account and complete all the
+                    informations.</p>
+                </div>
+                <div v-else>
+                  <CustomButton :buttonText="'Redeem Listing'" class="custom-btn" @activate="redeemItem()" />
+                  <p class="info-message">
+                    Note: This will assign you as the redeemer of the listing for 2 days in which you have time to order
+                    it trough postal office.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -55,6 +64,18 @@
             </NuxtLink>
           </div>
         </div>
+      </div>
+    </div>
+    <div class="content-container">
+      <div class="large-info-container">
+        <p class="title-paragraph">Seller: {{ listing.sellerEmail }}</p>
+        <p class="title-paragraph">Rating: {{ statistincs.averageRating }}</p>
+        <UTable v-if="statistincs.reviews?.length > 0" :rows="statistincs.reviews" sticky class="max-h-[200px] mt-4" :columns="[
+          { key: 'message', label: 'Message' },
+          { key: 'rating', label: 'Rating' }
+        ]" />
+        <p v-else class="text-gray-500 mt-4">No reviews for this seller yet.</p>
+
       </div>
     </div>
     <!-- Validation Popup -->
@@ -82,7 +103,7 @@ const { lastMessage } = useWebSocket()
 
 watch(lastMessage, (msg) => {
   if (msg && msg.type === 'dontion') {
-    if(msg.listing == listing.value.listingID){
+    if (msg.listing == listing.value.listingID) {
       fetchListings();
     }
   }
@@ -100,6 +121,9 @@ const isOwner = ref(false);
 const isValidationPopupVisible = ref(false);
 const isRedeemed = ref(false);
 const isRedeemer = ref(false);
+const informations = ref([]);
+const isAuthFinish = ref(false);
+const verifyAttributes = ref({});
 
 const selectedListing = useState("selectedListing");
 const router = useRouter();
@@ -108,6 +132,8 @@ function goToEditPage() {
   selectedListing.value = listing.value;
   router.push(`/edit/${listing.value.listingID}`);
 }
+
+const statistincs = ref([]);
 
 async function redeemItem() {
   try {
@@ -159,9 +185,29 @@ async function fetchListings() {
   const session = await fetchAuthSession();
   if (session && session.tokens) {
     isAuthenticated.value = true;
+    const token = session.tokens.idToken.toString();
     const attributes = await fetchUserAttributes();
     userEmail.value = attributes.email || '';
     sub.value = attributes.sub;
+    const response = await fetch(`${config.api_url}/user/informations?userID=${sub.value}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `${token}` },
+    });
+
+    const data = await response.json();
+    informations.value = JSON.parse(data.body);
+
+    console.log(informations.value);
+
+    verifyAttributes.value = {
+      country: informations.value.country || '',
+      county: informations.value.county || '',
+      city: informations.value.city || '',
+      address: informations.value.address || '',
+      postalCode: informations.value.postalCode || ''
+    };
+
+    isAuthFinish.value = Object.values(verifyAttributes.value).some(attr => attr.trim() === '');
   } else {
     isAuthenticated.value = false;
   }
@@ -178,6 +224,17 @@ async function fetchListings() {
     listing.value = JSON.parse(data.body);
 
     console.log(data);
+    try {
+      const response = await fetch(`${config.api_url}/user/review?userEmail=${listing.value.sellerEmail}`, {
+        method: 'GET'
+      })
+
+      const data = await response.json()
+      statistincs.value = JSON.parse(data.body)
+      console.log(statistincs.value);
+    } catch (error) {
+      console.error('Error fetching seller reviews:', error)
+    }
   } catch (error) {
     console.error("Error fetching listings:", error);
     lising.value = [];
@@ -267,6 +324,15 @@ onMounted(fetchListings);
   border: 1.5px solid #8e8d8d;
   padding: 16px;
   margin-bottom: 16px;
+}
+
+.large-info-container {
+  border: 1.5px solid #8e8d8d;
+  margin-bottom: 16px;
+  padding: 16px;
+  margin: 0 7.5px;
+  margin-bottom: 40px;
+  width: 100%;
 }
 
 .info-message {

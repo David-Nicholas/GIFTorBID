@@ -12,7 +12,17 @@
     </div>
 
     <div v-if="isAuthenticated" class="main-container">
-      <div class="content-container">
+      <div v-if="isAuthFinish" class="unauthenticated-container">
+        <p class="unauthenticated-message">One more step. You need to go to account and complete all the informations.</p>
+        <NuxtLink to="/account">
+          <CustomButton :buttonText="'Go to Account'" />
+        </NuxtLink>
+        <div class="image-container">
+          <img src="../assets/image.png" alt="mascot">
+        </div>
+      </div>
+
+      <div v-if="!isAuthFinish" class="content-container">
         <div class="info-container">
           <p class="contact-form-header">Add Listing</p>
           <form @submit.prevent="handleSubmit">
@@ -141,10 +151,12 @@ const imagePreviews = ref([]);
 const isPopupVisible = ref(false);
 const isValidationPopupVisible = ref(false);
 const isDonationConfirmationVisible = ref(false);
+const verifyAttributes = ref({});
 const isSubmitting = ref(false);
-const userPosts = ref(0);
 const selectedDuration = ref(7);
 const sub = ref('');
+const isAuthFinish = ref(false);
+const informations = ref([]);
 
 const durations = [2, 7, 14, 21];
 
@@ -162,9 +174,29 @@ async function fetchAndSetUserAttributes() {
     const session = await fetchAuthSession();
     if (session && session.tokens) {
       isAuthenticated.value = true;
+      const token = session.tokens.idToken.toString();
       const attributes = await fetchUserAttributes();
       form.value.sellerEmail = attributes.email || '';
       sub.value = attributes.sub;
+      const response = await fetch(`${config.api_url}/user/informations?userID=${sub.value}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `${token}` },
+      });
+
+      const data = await response.json();
+      informations.value = JSON.parse(data.body);
+
+      console.log(informations.value);
+
+      verifyAttributes.value = {
+        country: informations.value.country || '',
+        county: informations.value.county || '',
+        city: informations.value.city || '',
+        address: informations.value.address || '',
+        postalCode: informations.value.postalCode || ''
+      };
+
+      isAuthFinish.value = Object.values(verifyAttributes.value).some(attr => attr.trim() === '');
     }
   } catch (error) {
     isAuthenticated.value = false;
@@ -291,8 +323,8 @@ onMounted(fetchAndSetUserAttributes);
 
 <style scoped>
 .custom-btn {
-    width: 100%;
-    margin-top: 8px;
+  width: 100%;
+  margin-top: 8px;
 }
 
 .unauthenticated-container {
@@ -307,10 +339,10 @@ onMounted(fetchAndSetUserAttributes);
 }
 
 .image-container {
-    margin: 0 auto;
-    align-self: center;
-    width: 50%;
-    height: 50%;
+  margin: 0 auto;
+  align-self: center;
+  width: 50%;
+  height: 50%;
 }
 
 .custom-dropdown {
@@ -369,7 +401,8 @@ onMounted(fetchAndSetUserAttributes);
   padding: 16px;
   box-sizing: border-box;
   background-color: white;
-  box-shadow: 0px 4px 16px rgba(0, 0, 0, 0.1);
+  box-shadow: 0px 4px 16px rgba(0, 0, 0, 0.1); 
+  margin-top: 100px;
 }
 
 .attribute-key {
