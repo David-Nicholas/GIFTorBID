@@ -105,13 +105,6 @@ onMounted(fetchListings);
     height: 50%;
 }
 
-.image-container {
-    margin: 0 auto;
-    align-self: center;
-    width: 50%;
-    height: 50%;
-}
-
 .post-btn-container {
     margin-bottom: 40px;
 }

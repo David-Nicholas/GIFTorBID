@@ -1,35 +1,32 @@
 <template>
   <div class="notifications-root">
-    <div v-if="reviews.value?.reviews?.length === 0" class="text-center text-gray-500">
-      No reviews found.
+    <div v-if="statistincs.reviews?.length === 0" class="text-center text-gray-500">
+      <p class="info-message">No reviews yet.</p>
+      <div class="image-container">
+        <img src="../assets/image.png" alt="mascot">
+      </div>
     </div>
 
     <div v-else class="notification-list">
-      <div
-        v-for="(review, index) in reversedReviews"
-        :key="index"
-        class="notification-item"
-      >
-        <p class="message">{{ review.message }}</p>
-        <span class="rating"> <UIcon name="fontisto:star" class="size-5" /> {{ review.rating }}/5</span>
+      <div v-for="(review, index) in statistincs.reviews" :key="index" class="notification-item">
+        <p class="message">{{ review.writerEmail }}: <br> {{ review.message }}</p>
+        <span class="rating">
+          <UIcon name="fontisto:star" class="size-5" /> {{ review.rating }}/5
+        </span>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { fetchAuthSession, fetchUserAttributes } from 'aws-amplify/auth'
 
 definePageMeta({ colorMode: 'light' })
 
 const config = useRuntimeConfig().public
 const userEmail = ref('')
-const reviews = ref({ reviews: [] })
-
-const reversedReviews = computed(() => {
-    return [...(reviews.value.reviews || [])].reverse()
-  })
+const statistincs = ref([]);
 
 async function getUserReviews() {
   try {
@@ -48,8 +45,8 @@ async function getUserReviews() {
       })
 
       const data = await response.json()
-      reviews.value = JSON.parse(data.body)
-      console.log(reviews.value);
+      statistincs.value = JSON.parse(data.body)
+      console.log(statistincs.value);
     }
   } catch (error) {
     console.error('Error fetching reviews:', error)
@@ -61,7 +58,7 @@ onMounted(getUserReviews)
 
 <style scoped>
 .notifications-root {
-  max-width: 800px;
+  width: 98%;
   margin: 40px auto;
   padding: 0 20px;
 }
@@ -70,6 +67,19 @@ onMounted(getUserReviews)
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.info-message {
+    font-size: 18px;
+    margin-bottom: 10px;
+    color: #555;
+}
+
+.image-container {
+    margin: 0 auto;
+    align-self: center;
+    width: 50%;
+    height: 50%;
 }
 
 .notification-item {

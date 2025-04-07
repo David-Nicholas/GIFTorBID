@@ -33,7 +33,7 @@
                 <div class="custom-non-modifiable-columns">
                   <div v-for="(value, key) in filteredNonModifiableCustomAttributes()" :key="key"
                     class="custom-attribute-column">
-                    <p class="custom-attribute-key">{{ formatKey(key) }}</p>
+                    <NuxtLink :to="routeForAttribute(key)"><p class="custom-attribute-key">{{ formatKey(key) }}</p></NuxtLink>
                     <div class="custom-attribute-box">
                       <NuxtLink :to="routeForAttribute(key)">{{ value || '0' }}</NuxtLink>
                     </div>
@@ -454,13 +454,17 @@ onMounted(getUserInformations);
   font-size: 16px;
 }
 
+.custom-attribute-key:hover {
+  color: #2596be;
+  border-color: #2596be;
+}
+
 .custom-attribute-box {
   display: flex;
   justify-content: center;
   align-items: center;
   width: 80px;
   height: 80px;
-  border: 1.5px solid #000;
   font-size: 60px;
   text-align: center;
   line-height: normal;

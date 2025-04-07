@@ -53,6 +53,9 @@
               <div v-if="isRedeemed">
                 <div v-if="isRedeemer">
                   <p>You are the redeemer.</p>
+                  <NuxtLink to="/aquisitions">
+                    <CustomButton :buttonText="'Go to Redeemed'" class="custom-btn" />
+                  </NuxtLink>
                 </div>
                 <div v-else>
                   <p>You are late, the listing seems to be redeemed already.</p>
@@ -94,7 +97,7 @@
         <p class="title-paragraph">Seller: {{ listing.sellerEmail }}</p>
         <p class="title-paragraph">Rating: {{ statistincs.averageRating }}</p>
         <UTable v-if="statistincs.reviews?.length > 0" :rows="statistincs.reviews" sticky class="max-h-[200px] mt-4" :columns="[
-          { key: 'message', label: 'Message' },
+          { key: 'message', label: 'Review' },
           { key: 'writerEmail', label: 'Reviewer' },
           { key: 'rating', label: 'Rating' }
         ]" />
