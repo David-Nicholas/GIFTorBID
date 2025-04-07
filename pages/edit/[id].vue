@@ -312,7 +312,7 @@ async function createReview() {
         }
 
         console.log("Review made successfully");
-        order.redeemerReviewed = true;
+        order.value.redeemerReviewed = true;
     } catch (error) {
         console.error("Error creating review:", error);
     }
