@@ -1,10 +1,8 @@
 <template>
     <div class="notifications-root">
         <div v-if="statistincs.reviews?.length === 0" class="text-center text-gray-500">
+            <p class="name-paragraph"> {{ userEmail }} received reviews</p>
             <p class="info-message">No reviews yet.</p>
-            <div class="image-container">
-                <img src="../assets/image.png" alt="mascot">
-            </div>
         </div>
 
         <div v-else class="notification-list">
@@ -82,13 +80,6 @@ onMounted(getUserReviews)
     font-size: 24px;
     font-weight: bold;
     margin-bottom: 40px;
-}
-
-.image-container {
-    margin: 0 auto;
-    align-self: center;
-    width: 50%;
-    height: 50%;
 }
 
 .notification-item {

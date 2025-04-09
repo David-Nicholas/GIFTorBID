@@ -52,7 +52,7 @@
                                 <h2 class="text-xl font-semibold mt-4 mb-2">Bids</h2>
 
                                 <UTable v-if="bids.length > 0" :rows="listing.bids" sticky class="max-h-[200px]"
-                                    :columns="[{ key: 'bidderEmail', label: 'Bidder' }, { key: 'amount', label: 'Amount' }, { key: 'time', label: 'Date' }]" />
+                                    :columns="[{ key: 'bidderEmail', label: 'Bidder' }, { key: 'amount', label: 'Amount' }, { key: 'time', label: 'Date' }]" @select="goToReviewerPage"/>
 
                                 <p v-else class="text-gray-500">No bids have been placed yet for this acution.</p>
                             </div>
@@ -182,6 +182,12 @@ const userEmail = ref('');
 
 const description = ref('');
 const rating = ref(0);
+
+function goToReviewerPage(row) {
+  if (row?.bidderEmail) {
+    router.push(`/reviews/${row.bidderEmail}`);
+  }
+}
 
 const setRating = (value) => {
     rating.value = value;
