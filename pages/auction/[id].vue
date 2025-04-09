@@ -41,7 +41,7 @@
           <div v-if="listing.type === 'auction'" class="bids-table">
             <h2 class="text-xl font-semibold mt-4 mb-2">Bids</h2>
             <UTable v-if="listing.bids.length > 0" :rows="listing.bids" sticky class="max-h-[200px]"
-              :columns="[{ key: 'bidderEmail', label: 'Bidder' }, { key: 'amount', label: 'Amount' }, { key: 'time', label: 'Date' }]" />
+              :columns="[{ key: 'bidderEmail', label: 'Bidder' }, { key: 'amount', label: 'Amount' }, { key: 'time', label: 'Date' }]" @select="goToReviewerPage"/>
             <p v-else class="text-gray-500">No bids have been placed yet for this acution.</p>
           </div>
           <div v-if="isAuthenticated">
@@ -96,11 +96,12 @@
       <div class="large-info-container">
         <p class="title-paragraph">Seller: {{ listing.sellerEmail }}</p>
         <p class="title-paragraph">Rating: {{ statistincs.averageRating }}</p>
-        <UTable v-if="statistincs.reviews?.length > 0" :rows="statistincs.reviews" sticky class="max-h-[200px] mt-4" :columns="[
-          { key: 'message', label: 'Review' },
-          { key: 'writerEmail', label: 'Reviewer' },
-          { key: 'rating', label: 'Rating' }
-        ]" />
+        <UTable v-if="statistincs.reviews?.length > 0" :rows="statistincs.reviews" sticky class="max-h-[200px] mt-4"
+          :columns="[
+            { key: 'message', label: 'Review' },
+            { key: 'writerEmail', label: 'Reviewer' } ,
+            { key: 'rating', label: 'Rating' }
+          ]" @select="goToReviewerPage"/>
         <p v-else class="text-gray-500 mt-4">No reviews for this seller yet.</p>
 
       </div>
@@ -183,6 +184,15 @@ const items = [
 const listingImages = computed(() => {
   return items;
 });
+
+function goToReviewerPage(row) {
+  if (row?.writerEmail) {
+    router.push(`/reviews/${row.writerEmail}`);
+  }
+  if(row?.bidderEmail) {
+    router.push(`/reviews/${row.bidderEmail}`);
+  }
+}
 
 // Get the first image from the list or use a placeholder if none exists
 // const listingImages = computed(() => {
