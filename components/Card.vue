@@ -26,7 +26,7 @@
         </div>
 
         <div class="action-section">
-            <button class="show-more-btn" :style="{ backgroundColor: buttonColor }" @click="goToEditPage">
+            <button class="show-more-btn" :style="{ backgroundColor: buttonColor }" @click="goToListingPage">
                 Show More
             </button>
         </div>
@@ -49,7 +49,7 @@ const props = defineProps({
 const selectedListing = useState("selectedListing");
 const router = useRouter();
 
-function goToEditPage() {
+function goToListingPage() {
     selectedListing.value = props.listing;
     router.push(`${props.listing.type}/${props.listing.listingID}`);
 }

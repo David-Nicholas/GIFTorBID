@@ -145,6 +145,7 @@ const showError = ref(false);
 const informations = ref([]);
 
 const userID = ref('');
+const userEmail = ref('');
 
 async function getUserInformations() {
   try {
@@ -153,6 +154,7 @@ async function getUserInformations() {
     const token = session.tokens.idToken.toString();
     const attributes = await fetchUserAttributes();
     userID.value = attributes.sub;
+    userEmail.value = attributes.email || "";
     const response = await fetch(`${config.api_url}/user/informations?userID=${userID.value}`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json', 'Authorization': `${token}` },
@@ -265,7 +267,7 @@ function getPlaceholderForCustomAttribute(key) {
 function routeForAttribute(key) {
   switch (key) {
     case 'averageRating':
-      return '/reviews';
+      return `/reviews/${userEmail.value}`;
     case 'listingsIDs':
       return '/posts';
     case 'redeemedIDs':

@@ -77,7 +77,7 @@
           { key: 'message', label: 'Review' },
           { key: 'writerEmail', label: 'Reviewer' },
           { key: 'rating', label: 'Rating' }
-        ]" />
+        ]" @select="goToReviewerPage"/>
         <p v-else class="text-gray-500 mt-4">No reviews for this seller yet.</p>
 
       </div>
@@ -173,6 +173,12 @@ const items = [
   'https://picsum.photos/1920/1080?random=2',
   'https://picsum.photos/1920/1080?random=3'
 ]
+
+function goToReviewerPage(row) {
+  if (row?.writerEmail) {
+    router.push(`/reviews/${row.writerEmail}`);
+  }
+}
 
 const listingImages = computed(() => {
   return items;
