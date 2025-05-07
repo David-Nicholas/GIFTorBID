@@ -265,6 +265,8 @@ function getPlaceholderForCustomAttribute(key) {
 }
 
 function routeForAttribute(key) {
+  if (!userEmail.value && key === 'averageRating') return '/reviews/missing';
+
   switch (key) {
     case 'averageRating':
       return `/reviews/${userEmail.value}`;
