@@ -341,8 +341,10 @@ onMounted(verifyStauts);
 .info-section {
     padding: 10px;
     width: 100%;
-    height: 80px;
     text-align: center;
+    min-height: 80px;
+    max-height: 180px;
+    overflow-y: auto;
 }
 
 .listing-title {
