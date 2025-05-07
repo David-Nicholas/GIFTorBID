@@ -1,6 +1,6 @@
 <template>
     <nav class="navbar">
-        <div class="navbar-container">
+        <div class="navbar-container" ref="navbarRef">
 
             <div class="logo-burger-container">
                 <NuxtLink to="/" class="logo">
@@ -14,12 +14,12 @@
             </div>
 
             <div class="nav-links" :class="{ 'show-menu': isMenuOpen }">
-                <NuxtLink to="/donations" class="nav-btn" active-class="active-link">DONATIONS</NuxtLink>
-                <NuxtLink to="/auctions" class="nav-btn" active-class="active-link">AUCTIONS</NuxtLink>
-                <NuxtLink to="/post" class="nav-btn" active-class="active-link">POST</NuxtLink>
-                <NuxtLink to="/account" class="nav-btn" active-class="active-link">ACCOUNT</NuxtLink>
-                <NuxtLink to="/support" class="nav-btn" active-class="active-link">SUPPORT</NuxtLink>
-                <NuxtLink to="/notifications" class="nav-btn" active-class="active-link">NOTIFICATIONS</NuxtLink>
+                <NuxtLink to="/donations" class="nav-btn" active-class="active-link" @click="closeMenu">DONATIONS</NuxtLink>
+                <NuxtLink to="/auctions" class="nav-btn" active-class="active-link" @click="closeMenu">AUCTIONS</NuxtLink>
+                <NuxtLink to="/post" class="nav-btn" active-class="active-link" @click="closeMenu">POST</NuxtLink>
+                <NuxtLink to="/account" class="nav-btn" active-class="active-link" @click="closeMenu">ACCOUNT</NuxtLink>
+                <NuxtLink to="/support" class="nav-btn" active-class="active-link" @click="closeMenu">SUPPORT</NuxtLink>
+                <NuxtLink to="/notifications" class="nav-btn" active-class="active-link" @click="closeMenu">NOTIFICATIONS</NuxtLink>
             </div>
             
         </div>
@@ -27,14 +27,34 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted, onBeforeUnmount } from 'vue';
 
 const isMenuOpen = ref(false);
+const navbarRef = ref(null);
 
 const toggleMenu = () => {
     isMenuOpen.value = !isMenuOpen.value;
 };
+
+const handleClickOutside = (event) => {
+    if (navbarRef.value && !navbarRef.value.contains(event.target)) {
+        isMenuOpen.value = false;
+    }
+};
+
+onMounted(() => {
+    document.addEventListener('click', handleClickOutside);
+});
+
+onBeforeUnmount(() => {
+    document.removeEventListener('click', handleClickOutside);
+});
+
+const closeMenu = () => {
+  isMenuOpen.value = false;
+};
 </script>
+
 
 <style scoped>
 .navbar {
