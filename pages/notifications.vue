@@ -1,15 +1,19 @@
 <template>
   <div class="notifications-root">
-    <div v-if="notifications.notifications?.length === 0" class="text-center text-gray-500">
+    <div v-if="reversedNotifications.length === 0" class="text-center text-gray-500">
       <p class="info-message">No notifications yet.</p>
       <div class="image-container">
-        <img src="../assets/image.png" alt="mascot">
+        <img src="../assets/image.png" alt="mascot" />
       </div>
     </div>
 
     <div v-else class="notification-list">
-      <div v-for="(notif, index) in notifications.notifications" :key="index" class="notification-item"
-        @click="goTo(notif.redirect)">
+      <div
+        v-for="(notif, index) in reversedNotifications"
+        :key="index"
+        class="notification-item"
+        @click="goTo(notif.redirect)"
+      >
         <p class="message">{{ notif.message }}</p>
         <span class="redirect">&rarr;</span>
       </div>
@@ -18,7 +22,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { fetchAuthSession, fetchUserAttributes } from 'aws-amplify/auth'
 
@@ -26,8 +30,16 @@ definePageMeta({ colorMode: 'light' })
 
 const config = useRuntimeConfig().public
 const userID = ref('')
-const notifications = ref([]);
+const notifications = ref([])
 const router = useRouter()
+
+const reversedNotifications = computed(() => {
+  return [...notifications.value].reverse()
+})
+
+function goTo(path) {
+  router.push(path)
+}
 
 async function getUserMessages() {
   try {
@@ -46,16 +58,14 @@ async function getUserMessages() {
       })
 
       const data = await response.json()
-      notifications.value = JSON.parse(data.body)
-      console.log(notifications.value);
+      const parsed = JSON.parse(data.body)
+
+      notifications.value = Array.isArray(parsed.notifications) ? parsed.notifications : []
+      console.log('Fetched notifications:', notifications.value)
     }
   } catch (error) {
     console.error('Error fetching notifications:', error)
   }
-}
-
-function goTo(path) {
-  router.push(path)
 }
 
 onMounted(getUserMessages)
@@ -63,7 +73,7 @@ onMounted(getUserMessages)
 
 <style scoped>
 .notifications-root {
-  width: 98;
+  width: 98%;
   margin: 40px auto;
   padding: 0 20px;
 }
@@ -75,16 +85,16 @@ onMounted(getUserMessages)
 }
 
 .info-message {
-    font-size: 18px;
-    margin-bottom: 10px;
-    color: #555;
+  font-size: 18px;
+  margin-bottom: 10px;
+  color: #555;
 }
 
 .image-container {
-    margin: 0 auto;
-    align-self: center;
-    width: 50%;
-    height: 50%;
+  margin: 0 auto;
+  align-self: center;
+  width: 50%;
+  height: 50%;
 }
 
 .notification-item {

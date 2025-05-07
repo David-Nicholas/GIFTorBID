@@ -13,7 +13,8 @@
 
     <div v-if="isAuthenticated" class="main-container">
       <div v-if="isAuthFinish" class="unauthenticated-container">
-        <p class="unauthenticated-message">One more step. You need to go to account and complete all the informations.</p>
+        <p class="unauthenticated-message">One more step. You need to go to account and complete all the informations.
+        </p>
         <NuxtLink to="/account">
           <CustomButton :buttonText="'Go to Account'" />
         </NuxtLink>
@@ -22,74 +23,71 @@
         </div>
       </div>
 
-      <div v-if="!isAuthFinish" class="content-container">
-        <div class="info-container">
-          <p class="contact-form-header">Add Listing</p>
-          <form @submit.prevent="handleSubmit">
-            <div class="form-group">
-              <label class="attribute-key" for="name">Listing Name</label>
-              <input v-model="form.name" type="text" id="name" placeholder="Enter object name"
-                class="attribute-input" />
-            </div>
+      <div v-if="!isAuthFinish" class="info-container">
+        <p class="contact-form-header">Add Listing</p>
+        <form @submit.prevent="handleSubmit">
+          <div class="form-group">
+            <label class="attribute-key" for="name">Listing Name</label>
+            <input v-model="form.name" type="text" id="name" placeholder="Enter object name" class="attribute-input" />
+          </div>
 
-            <div class="form-group">
-              <label class="attribute-key">Type</label>
-              <div class="custom-dropdown" @click="toggleDropdown('type')">
-                <div class="dropdown-selected">{{ form.type || '>' }}</div>
-                <ul v-if="dropdowns.type" class="dropdown-options">
-                  <li @click.stop="selectOption('type', 'donation')">donation</li>
-                  <li @click.stop="selectOption('type', 'auction')">auction</li>
-                </ul>
+          <div class="form-group">
+            <label class="attribute-key">Type</label>
+            <div class="custom-dropdown" @click="toggleDropdown('type')">
+              <div class="dropdown-selected">{{ form.type || '>' }}</div>
+              <ul v-if="dropdowns.type" class="dropdown-options">
+                <li @click.stop="selectOption('type', 'donation')">donation</li>
+                <li @click.stop="selectOption('type', 'auction')">auction</li>
+              </ul>
+            </div>
+          </div>
+
+          <div v-if="form.type === 'auction'" class="auction-duration">
+            <label class="attribute-key">Auction Duration</label>
+            <div class="tabs-container">
+              <div v-for="duration in durations" :key="duration"
+                :class="['tab', { active: selectedDuration === duration }]" @click="selectedDuration = duration">
+                {{ duration }} days
               </div>
             </div>
+          </div>
 
-            <div v-if="form.type === 'auction'" class="auction-duration">
-              <label class="attribute-key">Auction Duration</label>
-              <div class="tabs-container">
-                <div v-for="duration in durations" :key="duration"
-                  :class="['tab', { active: selectedDuration === duration }]" @click="selectedDuration = duration">
-                  {{ duration }} days
-                </div>
-              </div>
+          <div class="form-group">
+            <label class="attribute-key">Category</label>
+            <div class="custom-dropdown" @click="toggleDropdown('category')">
+              <div class="dropdown-selected">{{ form.category || '>' }}</div>
+              <ul v-if="dropdowns.category" class="dropdown-options">
+                <li v-for="category in categories" :key="category" @click.stop="selectOption('category', category)">
+                  {{ category }}
+                </li>
+              </ul>
             </div>
+          </div>
 
-            <div class="form-group">
-              <label class="attribute-key">Category</label>
-              <div class="custom-dropdown" @click="toggleDropdown('category')">
-                <div class="dropdown-selected">{{ form.category || '>' }}</div>
-                <ul v-if="dropdowns.category" class="dropdown-options">
-                  <li v-for="category in categories" :key="category" @click.stop="selectOption('category', category)">
-                    {{ category }}
-                  </li>
-                </ul>
-              </div>
-            </div>
+          <div class="form-group">
+            <label class="attribute-key" for="description">Description</label>
+            <textarea v-model="form.description" id="description" placeholder="Enter a description" rows="6"
+              class="attribute-input"></textarea>
+          </div>
 
-            <div class="form-group">
-              <label class="attribute-key" for="description">Description</label>
-              <textarea v-model="form.description" id="description" placeholder="Enter a description" rows="6"
-                class="attribute-input"></textarea>
-            </div>
+          <div class="form-group">
+            <label class="attribute-key" for="sellerEmail">Seller Email</label>
+            <input v-model="form.sellerEmail" type="sellerEmail" id="sellerEmail" class="attribute-input" disabled />
+          </div>
 
-            <div class="form-group">
-              <label class="attribute-key" for="sellerEmail">Seller Email</label>
-              <input v-model="form.sellerEmail" type="sellerEmail" id="sellerEmail" class="attribute-input" disabled />
+          <div class="form-group">
+            <label class="attribute-key">Upload Images (Max 3)</label>
+            <input type="file" accept="image/jpeg, image/png" multiple @change="handleImageUpload"
+              class="attribute-input" />
+            <div v-if="imagePreviews.length" class="image-preview-container">
+              <img v-for="(image, index) in imagePreviews" :key="index" :src="image" class="image-preview" />
             </div>
+          </div>
 
-            <div class="form-group">
-              <label class="attribute-key">Upload Images (Max 3)</label>
-              <input type="file" accept="image/jpeg, image/png" multiple @change="handleImageUpload"
-                class="attribute-input" />
-              <div v-if="imagePreviews.length" class="image-preview-container">
-                <img v-for="(image, index) in imagePreviews" :key="index" :src="image" class="image-preview" />
-              </div>
-            </div>
-
-            <div class="form-group">
-              <CustomButton :buttonText="'Submit'" class="custom-btn" @activate="handleSubmit" />
-            </div>
-          </form>
-        </div>
+          <div class="form-group">
+            <CustomButton :buttonText="'Submit'" class="custom-btn" @activate="handleSubmit" />
+          </div>
+        </form>
       </div>
     </div>
 
@@ -389,20 +387,15 @@ onMounted(fetchAndSetUserAttributes);
   padding: 0 15px;
 }
 
-.content-container {
-  display: flex;
-  justify-content: center;
-  width: 98%;
-}
-
 .info-container {
   width: 100%;
   border: 1.5px solid #8e8d8d;
   padding: 16px;
   box-sizing: border-box;
   background-color: white;
-  box-shadow: 0px 4px 16px rgba(0, 0, 0, 0.1); 
+  box-shadow: 0px 4px 16px rgba(0, 0, 0, 0.1);
   margin-top: 100px;
+  margin-bottom: 100px;
 }
 
 .attribute-key {
