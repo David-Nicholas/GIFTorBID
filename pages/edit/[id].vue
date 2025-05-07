@@ -98,8 +98,15 @@
                             :style="{ backgroundColor: buttonColor }" @click="reviewSeller">
                             Review the redeemer
                         </button>
-                        <p v-else class="paragraph-style">Seller reviewed</p>
+                        <p v-else class="paragraph-style">Redeemer reviewed</p>
                     </div>
+                </div>
+                <div v-if="isNotOrdered" class="info-container">
+                    <p>Looks like the 2 days time for the redeemer to order the item have passed</p>
+                    <button class="button-style"
+                            :style="{ backgroundColor: buttonColor }" @click="reviewSeller">
+                            Review the redeemer
+                    </button>
                 </div>
             </div>
         </div>
@@ -177,8 +184,9 @@ const imagePreviews = ref([]);
 const isRedeemed = ref(false);
 const isOrdered = ref(false);
 const isDisplayReviewVisible = ref(false);
-const orderID = ref('');
+const listingID = ref('');
 const userEmail = ref('');
+const sub = ref('');
 
 const description = ref('');
 const rating = ref(0);
@@ -223,6 +231,14 @@ onMounted(() => {
     interval = setInterval(() => {
         now.value = DateTime.now();
     }, 1000);
+});
+
+const isNotOrdered = computed(() => {
+    console.log("Disable running");
+    if (!listing.value.endDate) return true;
+    if (listing.value.status !== 'redeemed') return false;
+    const endDatePlusTwoDays = DateTime.fromISO(listing.value.endDate).plus({ days: 2 });
+    return endDatePlusTwoDays < now.value;
 });
 
 onUnmounted(() => {
@@ -298,14 +314,14 @@ async function createReview() {
         const token = session.tokens.idToken.toString();
         userID.value = attributes.sub;
         userEmail.value = attributes.email || ''
-        orderID.value = `order-${listing.value.listingID}`;
+        listingID.value = `${listing.value.listingID}`;
         const response = await fetch(`${config.api_url}/user/review`, {
             method: "POST",
             headers: { 'Content-Type': 'application/json', 'Authorization': `${token}` },
             body: JSON.stringify({
                 body: JSON.stringify({
                     writerEmail: userEmail.value,
-                    orderID: orderID.value,
+                    listingID: listingID.value,
                     message: description.value,
                     rating: rating.value,
                     sub: userID.value,

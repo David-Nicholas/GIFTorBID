@@ -95,6 +95,7 @@
     <div class="content-container">
       <div class="large-info-container">
         <p class="title-paragraph">Seller: {{ listing.sellerEmail }}</p>
+        <p class="title-paragraph"><a :href="'tel:' + statistincs.phoneNumber">Phone Number: {{ statistincs.phoneNumber }}</a></p>
         <p class="title-paragraph">Rating: {{ statistincs.averageRating }}</p>
         <UTable v-if="statistincs.reviews?.length > 0" :rows="statistincs.reviews" sticky class="max-h-[200px] mt-4"
           :columns="[

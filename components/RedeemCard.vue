@@ -1,5 +1,8 @@
 <template>
-    <div class="listing-card">
+    <div class="listing-card relative">
+        <div v-if="isDisabled" class="overlay">
+            <div class="overlay-message">Not longer available for order</div>
+        </div>
         <div class="image-container">
             <img :src="firstImage" class="listing-image">
         </div>
@@ -12,7 +15,7 @@
 
         <div class="action-section">
             <button v-if="isRedeemed" class="button-style" :style="{ backgroundColor: buttonColor }"
-                @click="orderProduct">
+                @click="orderProduct" :disabled="isDisabled">
                 Order
             </button>
             <div v-if="isOrdered">
@@ -44,7 +47,8 @@
     <!-- Confirmation Popup for Deletion -->
     <div v-if="isConfirmationVisible" class="popup">
         <div class="popup-content">
-            <p class="attribute-key">Are you sure you want to order this item? This will trigger a generation of AWB and
+            <p class="attribute-key">Are you sure you want to order this item? This will trigger a generation of AWB
+                and
                 bouth you and the seller will recive an email with the inforamtions about the shpping details.</p>
             <CustomButton :buttonText="'Yes, Confirm'" class="custom-btn" @activate="confirmOrder" />
             <CustomButton :buttonText="'Cancel'" class="custom-btn cancel-btn" @activate="cancelOrder" />
@@ -93,7 +97,7 @@ const isRedeemed = ref(false);
 const isOrdered = ref(false);
 const userID = ref('');
 const isDisplayReviewVisible = ref(false);
-const orderID = ref('');
+const listingID = ref('');
 
 const description = ref('');
 const rating = ref(0);
@@ -120,6 +124,14 @@ const timeLeft = computed(() => {
         };
     }
     return null;
+});
+
+const isDisabled = computed(() => {
+    console.log("Disable running");
+    if (!props.listing.endDate) return true;
+    if (props.listing.status !== 'redeemed') return false;
+    const endDatePlusTwoDays = DateTime.fromISO(props.listing.endDate).plus({ days: 2 });
+    return endDatePlusTwoDays < now.value;
 });
 
 let interval;
@@ -200,14 +212,14 @@ async function createReview() {
         const session = await fetchAuthSession();
         const token = session.tokens.idToken.toString();
         userID.value = attributes.sub;
-        orderID.value = `order-${props.listing.listingID}`;
+        listingID.value = `${props.listing.listingID}`;
         const response = await fetch(`${config.api_url}/user/review`, {
             method: "POST",
             headers: { 'Content-Type': 'application/json', 'Authorization': `${token}` },
             body: JSON.stringify({
                 body: JSON.stringify({
                     writerEmail: props.listing.redeemerEmail,
-                    orderID: orderID.value,
+                    listingID: listingID.value,
                     message: description.value,
                     rating: rating.value,
                     sub: userID.value,
@@ -272,6 +284,30 @@ onMounted(verifyStauts);
 </script>
 
 <style scoped>
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(180, 180, 180, 0.5);
+  backdrop-filter: blur(2px);
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: all;
+}
+
+.overlay-message {
+  color: white;
+  font-size: 18px;
+  font-weight: bold;
+  text-align: center;
+  padding: 12px 20px;
+  border-radius: 8px;
+}
+
 .listing-card {
     border: 1.5px solid #8e8d8d;
     background-color: white;
