@@ -52,7 +52,8 @@
                                 <h2 class="text-xl font-semibold mt-4 mb-2">Bids</h2>
 
                                 <UTable v-if="bids.length > 0" :rows="listing.bids" sticky class="max-h-[200px]"
-                                    :columns="[{ key: 'bidderEmail', label: 'Bidder' }, { key: 'amount', label: 'Amount' }, { key: 'time', label: 'Date' }]" @select="goToReviewerPage"/>
+                                    :columns="[{ key: 'bidderEmail', label: 'Bidder' }, { key: 'amount', label: 'Amount' }, { key: 'time', label: 'Date' }]"
+                                    @select="goToReviewerPage" />
 
                                 <p v-else class="text-gray-500">No bids have been placed yet for this acution.</p>
                             </div>
@@ -76,6 +77,34 @@
                                 @activate="deleteListing" />
                         </div>
                     </form>
+                </div>
+                <div v-if="listing.redeemerEmail" class="info-container">
+                    <div v-if="!order.redeemerReviewed" class="large-info-container">
+                        <p class="title-paragraph">Winner: {{ listing.redeemerEmail }}</p>
+                        <p class="title-paragraph"><a :href="'tel:' + statistincs.phoneNumber">Phone Number: {{
+                            statistincs.phoneNumber }}</a></p>
+                        <p class="title-paragraph">Rating: {{ statistincs.averageRating }}</p>
+                        <UTable v-if="statistincs.reviews?.length > 0" :rows="statistincs.reviews" sticky
+                            class="max-h-[200px] mt-4" :columns="[
+                                { key: 'message', label: 'Review' },
+                                { key: 'writerEmail', label: 'Reviewer' },
+                                { key: 'rating', label: 'Rating' }
+                            ]" @select="goToReviewerPage" />
+                        <p v-else class="text-gray-500 mt-4">No reviews for this seller yet.</p>
+                    </div>
+                    <div v-if="!isComplete">
+                        <br>
+                        <br>
+                        <div v-if="isLowRating">
+                            <div v-if="!order.redeemerReviewed">
+                                <p>The redeemer rating is considered to be low you have the right to refuse him/her if
+                                    you
+                                    want.</p>
+                                <CustomButton :buttonText="'Refuse Redeemer'" class="custom-btn"
+                                    @activate="refuseRedeemer" />
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div v-if="isOrdered" class="info-container">
                     <p class="title-style">Order info</p>
@@ -101,12 +130,14 @@
                         <p v-else class="paragraph-style">Redeemer reviewed</p>
                     </div>
                 </div>
+
                 <div v-if="isNotOrdered" class="info-container">
-                    <p>Looks like the 2 days time for the redeemer to order the item have passed</p>
-                    <button class="button-style"
-                            :style="{ backgroundColor: buttonColor }" @click="reviewSeller">
+                    <div v-if="!order.redeemerReviewed">
+                        <p>Looks like the 2 days time for the redeemer to order the item have passed</p>
+                        <button class="button-style" :style="{ backgroundColor: buttonColor }" @click="reviewSeller">
                             Review the redeemer
-                    </button>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -183,18 +214,21 @@ const userID = ref('');
 const imagePreviews = ref([]);
 const isRedeemed = ref(false);
 const isOrdered = ref(false);
+const isComplete = ref(false);
 const isDisplayReviewVisible = ref(false);
 const listingID = ref('');
 const userEmail = ref('');
 const sub = ref('');
+const statistincs = ref([]);
+const isLowRating = ref(false);
 
 const description = ref('');
 const rating = ref(0);
 
 function goToReviewerPage(row) {
-  if (row?.bidderEmail) {
-    router.push(`/reviews/${row.bidderEmail}`);
-  }
+    if (row?.bidderEmail) {
+        router.push(`/reviews/${row.bidderEmail}`);
+    }
 }
 
 const setRating = (value) => {
@@ -234,8 +268,6 @@ onMounted(() => {
 });
 
 const isNotOrdered = computed(() => {
-    console.log("Disable running");
-    if (!listing.value.endDate) return true;
     if (listing.value.status !== 'redeemed') return false;
     const endDatePlusTwoDays = DateTime.fromISO(listing.value.endDate).plus({ days: 2 });
     return endDatePlusTwoDays < now.value;
@@ -283,6 +315,20 @@ async function verifyStauts() {
         isRedeemed.value = false;
     } else {
         isRedeemed.value = true;
+        try {
+            const response = await fetch(`${config.api_url}/user/review?userEmail=${listing.value.redeemerEmail}`, {
+                method: 'GET'
+            })
+
+            const data = await response.json()
+            statistincs.value = JSON.parse(data.body)
+            console.log(statistincs.value);
+            if (statistincs.value.averageRating < 4.0 && statistincs.value.averageRating != 0) {
+                isLowRating.value = true;
+            }
+        } catch (error) {
+            console.error('Error fetching seller reviews:', error)
+        }
         if (listing.value.status === "ordered") {
             isOrdered.value = true;
             try {
@@ -303,6 +349,11 @@ async function verifyStauts() {
             }
         } else {
             isOrdered.value = false;
+            if (listing.value.status === "complete") {
+                isComplete.value = true;
+            } else {
+                isComplete.value = false;
+            }
         }
     }
 }
@@ -335,11 +386,48 @@ async function createReview() {
 
         console.log("Review made successfully");
         order.value.redeemerReviewed = true;
+        listing.value.status = "available";
+        listing.value.redeemerEmail = "";
     } catch (error) {
         console.error("Error creating review:", error);
     }
 }
 
+
+
+async function refuseRedeemer() {
+    try {
+        const attributes = await fetchUserAttributes();
+        const session = await fetchAuthSession();
+        const token = session.tokens.idToken.toString();
+        userID.value = attributes.sub;
+        userEmail.value = attributes.email || ''
+        listingID.value = `${listing.value.listingID}`;
+        const response = await fetch(`${config.api_url}/user/listings/listing/refuse`, {
+            method: "POST",
+            headers: { 'Content-Type': 'application/json', 'Authorization': `${token}` },
+            body: JSON.stringify({
+                body: JSON.stringify({
+                    listingID: listingID.value,
+                    sellerEmail: listing.value.sellerEmail,
+                    redeemerEmail: listing.value.redeemerEmail,
+                    sub: userID.value,
+                })
+            }),
+        });
+
+        if (!response.ok) {
+            throw new Error("Failed to refuse redeemer");
+        }
+
+        console.log("Refusal made successfully");
+        order.value.redeemerReviewed = true;
+        listing.value.status = "available";
+        listing.value.redeemerEmail = "";
+    } catch (error) {
+        console.error("Error creating refusal:", error);
+    }
+}
 function reviewSeller() {
     isDisplayReviewVisible.value = true;
 }
