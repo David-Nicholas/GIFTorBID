@@ -21,6 +21,8 @@
           <p class="text-paragraph">{{ listing.type }}</p>
           <p class="title-paragraph">Category:</p>
           <p class="last-text-paragraph">{{ listing.category }}</p>
+          <p class="title-paragraph">Listing Date:</p>
+          <p class="last-text-paragraph">{{ listing.listingDate }}</p>
         </div>
       </div>
       <div class="right-column">
