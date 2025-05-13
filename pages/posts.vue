@@ -28,7 +28,7 @@
             </div>
 
             <div v-else class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3">
-                <EditCard v-for="listing in listings" :key="listing.objectID" :listing="listing" />
+                <Card v-for="listing in listings" :key="listing.objectID" :listing="listing" mode="edit"/>
             </div>
         </div>
     </div>
@@ -42,7 +42,7 @@ definePageMeta({
 
 import { ref, onMounted } from 'vue';
 import { fetchUserAttributes, fetchAuthSession } from 'aws-amplify/auth';
-import EditCard from '~/components/EditCard.vue';
+import Card from '~/components/Card.vue';
 
 const config = useRuntimeConfig().public;
 const listings = ref([]);

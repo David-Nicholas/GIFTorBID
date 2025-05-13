@@ -41,7 +41,7 @@
     </div>
 
     <div v-else class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3">
-      <Card v-for="listing in filteredListings" :key="listing.objectID" :listing="listing" />
+      <Card v-for="listing in filteredListings" :key="listing.objectID" :listing="listing" mode="view"/>
     </div>
   </div>
 </template>
