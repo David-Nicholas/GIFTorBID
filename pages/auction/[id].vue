@@ -80,7 +80,7 @@
                     <input v-model="bidAmount" type="text" placeholder="Input amount" class="attribute-input">
                   </div>
                   <div v-if="!isAuthFinish" class="right-column">
-                    <CustomButton :buttonText="'Bid'" class="custom-btn" @activate="bidOnItem()" />
+                    <CustomButton :buttonText="'Bid'" class="custom-btn" @activate="bidOnItemHandler()" />
                   </div>
                 </div>
               </div>
@@ -132,6 +132,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { watch } from 'vue'
 import { useWebSocket } from '~/utils/useWebSocket'
 import PopupDialog from '~/components/PopupDialog.vue'
+import { useEndpoint } from '~/utils/useEndpoint'
 
 
 const { lastMessage } = useWebSocket()
@@ -139,7 +140,7 @@ const { lastMessage } = useWebSocket()
 watch(lastMessage, (msg) => {
   if (msg && msg.type === 'auction') {
     if (msg.listing == listing.value.listingID) {
-      fetchListings();
+      fetchListingsHandler();
     }
   }
 })
@@ -167,6 +168,7 @@ const selectedListing = useState("selectedListing");
 const router = useRouter();
 
 const auth = ref({ isAuthenticated: false, userID: '', userEmail: '', token: '' })
+const { getUserReviews, bidOnItem, getUserInformations, getListingByID } = useEndpoint()
 
 function goToEditPage() {
   selectedListing.value = listing.value;
@@ -221,19 +223,14 @@ const timeLeft = computed(() => {
 
 const statistincs = ref([]);
 
-async function getSellerReviews(email) {
+async function getSellerReviewsHandler() {
   try {
 
-    const response = await fetch(`${config.api_url}/user/review?userEmail=${auth.value.userEmail}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `${auth.value.token}`
-      }
-    })
-
-    const data = await response.json()
-    statistincs.value = JSON.parse(data.body)
+    const result = await getUserReviews({
+      email: listing.value.sellerEmail,
+      token: auth.value.token,
+    });
+    statistincs.value = result;
     console.log(statistincs.value);
   } catch (error) {
     console.error('Error fetching seller reviews:', error)
@@ -242,11 +239,11 @@ async function getSellerReviews(email) {
 
 onMounted(() => {
   if (listing?.sellerEmail) {
-    getSellerReviews(listing.sellerEmail)
+    getSellerReviewsHandler(listing.sellerEmail)
   }
 })
 
-async function bidOnItem() {
+async function bidOnItemHandler() {
   try {
     if (listing.value.bids.length > 0) {
       const highestBid = parseFloat(listing.value.bids[0].amount);
@@ -258,21 +255,16 @@ async function bidOnItem() {
         return;
       }
     }
-    const response = await fetch(`${config.api_url}/listings/listing/auction`, {
-      method: "PUT",
-      headers: { 'Content-Type': 'application/json', 'Authorization': `${auth.value.token}` },
-      body: JSON.stringify({
-        body: JSON.stringify({
-          listingID: listing.value.listingID,
-          bidAmount: bidAmount.value,
-          sub: auth.value.userID,
-          bidderEmail: auth.value.userEmail,
-          name: listing.value.name
-        })
-      })
+    const response = await bidOnItem({
+      listingID: listing.value.listingID,
+      bidAmount: bidAmount.value,
+      sub: auth.value.userID,
+      bidderEmail: auth.value.userEmail,
+      name: listing.value.name,
+      token: auth.value.token,
     });
 
-    if (!response.ok) {
+    if (!response) {
       throw new Error("Failed to bid on listing");
     }
 
@@ -283,7 +275,7 @@ async function bidOnItem() {
   }
 }
 
-async function fetchListings() {
+async function fetchListingsHandler() {
   isLoading.value = true;
 
   if (!auth.value.isAuthenticated) {
@@ -294,16 +286,11 @@ async function fetchListings() {
   isAuthenticated.value = true;
 
   try {
-    const response = await fetch(`${config.api_url}/user/informations?userID=${auth.value.userID}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `${auth.value.token}`
-      }
+    const response = await getUserInformations({
+      userID: auth.value.userID,
+      token: auth.value.token,
     });
-
-    const data = await response.json();
-    informations.value = JSON.parse(data.body);
+    informations.value = response;
 
     verifyAttributes.value = {
       country: informations.value.country || '',
@@ -315,12 +302,9 @@ async function fetchListings() {
 
     isAuthFinish.value = Object.values(verifyAttributes.value).some(attr => attr.trim() === '');
 
-    const listingResponse = await fetch(`${config.api_url}/listings/listing?listingID=${route.params.id}`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' }
-    });
+    const listingResponse = await getListingByID(route.params.id);
 
-    listing.value = JSON.parse((await listingResponse.json()).body);
+    listing.value = listingResponse;
 
     if (auth.value.userEmail === listing.value.sellerEmail) {
       isOwner.value = true;
@@ -366,7 +350,7 @@ onUnmounted(() => {
 });
 onMounted(async () => {
   auth.value = await useAuth()
-  fetchListings()
+  fetchListingsHandler()
 })
 </script>
 

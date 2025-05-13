@@ -78,7 +78,7 @@ import { computed } from 'vue';
 import { DateTime } from 'luxon';
 import { useAuth } from '~/utils/useAuth'
 import PopupDialog from '~/components/PopupDialog.vue'
-import { useEndpoint } from '~/composables/useEndpoint'
+import { useEndpoint } from '~/utils/useEndpoint'
 
 const now = ref(DateTime.now());
 
