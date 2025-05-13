@@ -45,15 +45,9 @@
         </div>
     </div>
     <!-- Confirmation Popup for Deletion -->
-    <div v-if="isConfirmationVisible" class="popup">
-        <div class="popup-content">
-            <p class="attribute-key">Are you sure you want to order this item? This will trigger a generation of AWB
-                and
-                bouth you and the seller will recive an email with the inforamtions about the shpping details.</p>
-            <CustomButton :buttonText="'Yes, Confirm'" class="custom-btn" @activate="confirmOrder" />
-            <CustomButton :buttonText="'Cancel'" class="custom-btn cancel-btn" @activate="cancelOrder" />
-        </div>
-    </div>
+    <PopupDialog :visible="isConfirmationVisible"
+        message="Are you sure you want to order this item? This will trigger a generation of AWB and both you and the seller will receive an email with the shipping details."
+        confirmText="Yes, Confirm" cancelText="Cancel" @confirm="confirmOrder" @cancel="cancelOrder" />
     <!-- Review Popup -->
     <div v-if="isDisplayReviewVisible" class="popup">
         <div class="popup-content">
@@ -81,8 +75,10 @@
 
 <script setup>
 import { computed } from 'vue';
-import { fetchUserAttributes, fetchAuthSession } from 'aws-amplify/auth';
 import { DateTime } from 'luxon';
+import { useAuth } from '~/utils/useAuth'
+import PopupDialog from '~/components/PopupDialog.vue'
+import { useEndpoint } from '~/composables/useEndpoint'
 
 const now = ref(DateTime.now());
 
@@ -95,12 +91,18 @@ const isConfirmationVisible = ref(false);
 const order = ref([]);
 const isRedeemed = ref(false);
 const isOrdered = ref(false);
-const userID = ref('');
 const isDisplayReviewVisible = ref(false);
 const listingID = ref('');
-
 const description = ref('');
 const rating = ref(0);
+
+const auth = ref({ isAuthenticated: false, userID: '', userEmail: '', token: '' })
+const { getOrderByListingID, createOrder, createReview } = useEndpoint()
+
+onMounted(async () => {
+    auth.value = await useAuth()
+    verifyStatusHandler()
+})
 
 const setRating = (value) => {
     rating.value = value;
@@ -145,97 +147,67 @@ onUnmounted(() => {
     clearInterval(interval);
 });
 
-async function verifyStauts() {
-    if (props.listing.status === "redeemed") {
-        isRedeemed.value = true;
+async function verifyStatusHandler() {
+  if (props.listing.status === 'redeemed') {
+    isRedeemed.value = true
+  } else {
+    isRedeemed.value = false
+    if (props.listing.status === 'ordered') {
+      isOrdered.value = true
+      try {
+        const result = await getOrderByListingID({
+          listingID: props.listing.listingID,
+          userID: auth.value.userID,
+          token: auth.value.token
+        })
+        order.value = result
+        console.log('Order found: ', order.value)
+      } catch (error) {
+        console.error('Error fetching order: ', error)
+      }
     } else {
-        isRedeemed.value = false;
-        if (props.listing.status === "ordered") {
-            isOrdered.value = true;
-            try {
-                const attributes = await fetchUserAttributes();
-                const session = await fetchAuthSession();
-                const token = session.tokens.idToken.toString();
-                console.log(props.listing.listingID);
-                userID.value = attributes.sub;
-                const response = await fetch(`${config.api_url}/user/orders?orderID=${props.listing.listingID}&userID=${userID.value}`, {
-                    method: 'GET',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `${token}` },
-                });
-
-                const data = await response.json();
-                order.value = JSON.parse(data.body);
-                console.log("Order found: ", order.value);
-            } catch (error) {
-                console.error("Error fetching order: ", error);
-            }
-        } else {
-            isOrdered.value = false;
-        }
-
+      isOrdered.value = false
     }
+  }
 }
 
-async function createOrder() {
-    try {
-        const attributes = await fetchUserAttributes();
-        const session = await fetchAuthSession();
-        const token = session.tokens.idToken.toString();
-        userID.value = attributes.sub;
-        const response = await fetch(`${config.api_url}/user/orders`, {
-            method: "POST",
-            headers: { 'Content-Type': 'application/json', 'Authorization': `${token}` },
-            body: JSON.stringify({
-                body: JSON.stringify({
-                    listingID: props.listing.listingID,
-                    sellerEmail: props.listing.sellerEmail,
-                    redeemerEmail: props.listing.redeemerEmail,
-                    sub: userID.value,
-                })
-            }),
-        });
+async function createOrderHandler() {
+  try {
+    const success = await createOrder({
+      listingID: props.listing.listingID,
+      sellerEmail: props.listing.sellerEmail,
+      redeemerEmail: props.listing.redeemerEmail,
+      sub: auth.value.userID,
+      token: auth.value.token
+    })
 
-        if (!response.ok) {
-            throw new Error("Failed to create order");
-        }
+    if (!success) throw new Error('Failed to create order')
 
-        console.log("Order made successfully");
-        location.reload();
-    } catch (error) {
-        console.error("Error creating order:", error);
-    }
+    console.log('Order made successfully')
+    location.reload()
+  } catch (error) {
+    console.error('Error creating order:', error)
+  }
 }
 
-async function createReview() {
-    try {
-        const attributes = await fetchUserAttributes();
-        const session = await fetchAuthSession();
-        const token = session.tokens.idToken.toString();
-        userID.value = attributes.sub;
-        listingID.value = `${props.listing.listingID}`;
-        const response = await fetch(`${config.api_url}/user/review`, {
-            method: "POST",
-            headers: { 'Content-Type': 'application/json', 'Authorization': `${token}` },
-            body: JSON.stringify({
-                body: JSON.stringify({
-                    writerEmail: props.listing.redeemerEmail,
-                    listingID: listingID.value,
-                    message: description.value,
-                    rating: rating.value,
-                    sub: userID.value,
-                })
-            }),
-        });
+async function createReviewHandler() {
+  try {
+    const success = await createReview({
+      writerEmail: props.listing.redeemerEmail,
+      listingID: props.listing.listingID,
+      message: description.value,
+      rating: rating.value,
+      sub: auth.value.userID,
+      token: auth.value.token
+    })
 
-        if (!response.ok) {
-            throw new Error("Failed to create review");
-        }
+    if (!success) throw new Error('Failed to create review')
 
-        console.log("Review made successfully");
-        location.reload();
-    } catch (error) {
-        console.error("Error creating review:", error);
-    }
+    console.log('Review made successfully')
+    location.reload()
+  } catch (error) {
+    console.error('Error creating review:', error)
+  }
 }
 
 function reviewSeller() {
@@ -244,7 +216,7 @@ function reviewSeller() {
 
 function confirmReview() {
     isDisplayReviewVisible.value = false;
-    createReview();
+    createReviewHandler();
 }
 
 function cancelReview() {
@@ -258,7 +230,7 @@ function orderProduct() {
 
 function confirmOrder() {
     isConfirmationVisible.value = false;
-    createOrder();
+    createOrderHandler();
 }
 
 function cancelOrder() {
@@ -279,33 +251,31 @@ const firstImage = computed(() => {
 const buttonColor = computed(() => {
     return props.listing.type === "auction" ? "#EBA92E" : "#35A45F";
 });
-
-onMounted(verifyStauts);
 </script>
 
 <style scoped>
 .overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(180, 180, 180, 0.5);
-  backdrop-filter: blur(2px);
-  z-index: 10;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  pointer-events: all;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(180, 180, 180, 0.5);
+    backdrop-filter: blur(2px);
+    z-index: 10;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: all;
 }
 
 .overlay-message {
-  color: white;
-  font-size: 18px;
-  font-weight: bold;
-  text-align: center;
-  padding: 12px 20px;
-  border-radius: 8px;
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+    text-align: center;
+    padding: 12px 20px;
+    border-radius: 8px;
 }
 
 .listing-card {

@@ -55,6 +55,7 @@ import { ref, onMounted, computed } from 'vue';
 import Card from '~/components/Card.vue';
 import { watch } from 'vue'
 import { useWebSocket } from '~/utils/useWebSocket'
+import { categories } from '~/constants/categories'
 
 const { lastMessage } = useWebSocket()
 
@@ -67,11 +68,6 @@ watch(lastMessage, (msg) => {
 const config = useRuntimeConfig().public;
 const listings = ref([]);
 const isLoading = ref(true);
-
-const categories = ref([
-  'fashion', 'electronics', 'home appliances', 'culture and art', 'home and garden',
-  'leisure', 'entertainment', 'education', 'health', 'construction', 'toys'
-]);
 const selectedCategories = ref([]);
 const selectedStatus = ref("all");
 

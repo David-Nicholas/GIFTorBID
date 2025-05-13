@@ -62,7 +62,7 @@
 
                         <div class="form-group">
                             <label class="attribute-key">Upload Images (Max 3) / Current: {{ listing.images.length
-                                }}</label>
+                            }}</label>
                             <input type="file" accept="image/jpeg, image/png" multiple @change="handleImageUpload"
                                 class="attribute-input" />
                             <div v-if="imagePreviews.length" class="image-preview-container">
@@ -143,30 +143,18 @@
         </div>
 
         <!-- Validation Popup -->
-        <div v-if="isValidationPopupVisible" class="popup">
-            <div class="popup-content">
-                <p class="attribute-key">Please fill out Object Name and Description before submitting.</p>
-                <CustomButton :buttonText="'Close'" class="custom-btn" @activate="closeValidationPopup" />
-            </div>
-        </div>
+        <PopupDialog :visible="isValidationPopupVisible"
+            message="Please fill out Object Name and Description before submitting." @cancel="closeValidationPopup" />
 
         <!-- Confirmation Popup for Deletion -->
-        <div v-if="isDeletionConfirmationVisible" class="popup">
-            <div class="popup-content">
-                <p class="attribute-key">Are you sure you want to delete this item? This action cannot be undone.</p>
-                <CustomButton :buttonText="'Yes, Confirm'" class="custom-btn" @activate="confirmDeletion" />
-                <CustomButton :buttonText="'Cancel'" class="custom-btn cancel-btn" @activate="cancelDeletion" />
-            </div>
-        </div>
+        <PopupDialog :visible="isDeletionConfirmationVisible"
+            message="Are you sure you want to delete this item? This action cannot be undone."
+            confirmText="Yes, Confirm" cancelText="Cancel" @confirm="confirmDeletion" @cancel="cancelDeletion" />
 
         <!-- Confirmation Popup for Change -->
-        <div v-if="isChangeConfirmationVisible" class="popup">
-            <div class="popup-content">
-                <p class="attribute-key">Are you sure you want to change this item?</p>
-                <CustomButton :buttonText="'Yes, Confirm'" class="custom-btn" @activate="confirmChange" />
-                <CustomButton :buttonText="'Cancel'" class="custom-btn cancel-btn" @activate="cancelChange" />
-            </div>
-        </div>
+        <PopupDialog :visible="isChangeConfirmationVisible" message="Are you sure you want to change this item?"
+            confirmText="Yes, Confirm" cancelText="Cancel" @confirm="confirmChange" @cancel="cancelChange" />
+
         <!-- Review Popup -->
         <div v-if="isDisplayReviewVisible" class="popup">
             <div class="popup-content">
@@ -201,8 +189,9 @@ definePageMeta({
 import { useState } from "#app";
 import { useRouter } from "vue-router";
 import { ref, computed } from 'vue';
-import { fetchUserAttributes, updateUserAttributes, fetchAuthSession } from 'aws-amplify/auth';
+import PopupDialog from '~/components/PopupDialog.vue'
 import { DateTime } from 'luxon';
+import { useAuth } from '~/utils/useAuth'
 
 const now = ref(DateTime.now());
 
@@ -210,20 +199,19 @@ const router = useRouter();
 const selectedListing = useState("selectedListing");
 const config = useRuntimeConfig().public;
 const userPosts = ref(0);
-const userID = ref('');
 const imagePreviews = ref([]);
 const isRedeemed = ref(false);
 const isOrdered = ref(false);
 const isComplete = ref(false);
 const isDisplayReviewVisible = ref(false);
 const listingID = ref('');
-const userEmail = ref('');
-const sub = ref('');
 const statistincs = ref([]);
 const isLowRating = ref(false);
 
 const description = ref('');
 const rating = ref(0);
+
+const auth = ref({ isAuthenticated: false, userID: '', userEmail: '', token: '' })
 
 function goToReviewerPage(row) {
     if (row?.bidderEmail) {
@@ -332,13 +320,9 @@ async function verifyStauts() {
         if (listing.value.status === "ordered") {
             isOrdered.value = true;
             try {
-                const attributes = await fetchUserAttributes();
-                const session = await fetchAuthSession();
-                const token = session.tokens.idToken.toString();
-                userID.value = attributes.sub;
-                const response = await fetch(`${config.api_url}/user/orders?orderID=${listing.value.listingID}&userID=${userID.value}`, {
+                const response = await fetch(`${config.api_url}/user/orders?orderID=${listing.value.listingID}&userID=${auth.value.userID}`, {
                     method: 'GET',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `${token}` },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `${auth.value.token}` },
                 });
                 const data = await response.json();
                 console.log("Reponse found: ", data);
@@ -360,22 +344,17 @@ async function verifyStauts() {
 
 async function createReview() {
     try {
-        const attributes = await fetchUserAttributes();
-        const session = await fetchAuthSession();
-        const token = session.tokens.idToken.toString();
-        userID.value = attributes.sub;
-        userEmail.value = attributes.email || ''
         listingID.value = `${listing.value.listingID}`;
         const response = await fetch(`${config.api_url}/user/review`, {
             method: "POST",
-            headers: { 'Content-Type': 'application/json', 'Authorization': `${token}` },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `${auth.value.token}` },
             body: JSON.stringify({
                 body: JSON.stringify({
                     writerEmail: userEmail.value,
                     listingID: listingID.value,
                     message: description.value,
                     rating: rating.value,
-                    sub: userID.value,
+                    sub: auth.value.userID,
                 })
             }),
         });
@@ -397,21 +376,16 @@ async function createReview() {
 
 async function refuseRedeemer() {
     try {
-        const attributes = await fetchUserAttributes();
-        const session = await fetchAuthSession();
-        const token = session.tokens.idToken.toString();
-        userID.value = attributes.sub;
-        userEmail.value = attributes.email || ''
         listingID.value = `${listing.value.listingID}`;
         const response = await fetch(`${config.api_url}/user/listings/listing/refuse`, {
             method: "POST",
-            headers: { 'Content-Type': 'application/json', 'Authorization': `${token}` },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `${auth.value.token}` },
             body: JSON.stringify({
                 body: JSON.stringify({
                     listingID: listingID.value,
                     sellerEmail: listing.value.sellerEmail,
                     redeemerEmail: listing.value.redeemerEmail,
-                    sub: userID.value,
+                    sub: auth.value.userID,
                 })
             }),
         });
@@ -443,18 +417,14 @@ function cancelReview() {
 
 async function deleteListingTrigger() {
     try {
-        const attributes = await fetchUserAttributes();
-        const session = await fetchAuthSession();
-        const token = session.tokens.idToken.toString();
-        userID.value = attributes.sub;
         const response = await fetch(`${config.api_url}/user/listings/listing`, {
             method: "DELETE",
-            headers: { 'Content-Type': 'application/json', 'Authorization': `${token}` },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `${auth.value.token}` },
             body: JSON.stringify({
                 body: JSON.stringify({
                     listingID: listing.value.listingID,
                     sellerEmail: listing.value.sellerEmail,
-                    sub: sub.value
+                    sub: auth.value.userID
                 })
             })
         });
@@ -465,7 +435,6 @@ async function deleteListingTrigger() {
 
         console.log("Listing deleted successfully");
         const newPostCount = userPosts.value ? parseInt(userPosts.value, 10) - 1 : 1;
-        await updateUserAttributes({ userAttributes: { "custom:listings_number": newPostCount.toString() } });
         router.push("/posts");
     } catch (error) {
         console.error("Error deleting listing:", error);
@@ -511,18 +480,14 @@ function compressImage(base64Str, callback) {
 
 async function changeListingTrigger() {
     try {
-        const attributes = await fetchUserAttributes();
-        const session = await fetchAuthSession();
-        const token = session.tokens.idToken.toString();
-        sub.value = attributes.sub;
         const response = await fetch(`${config.api_url}/user/listings/listing`, {
             method: "PUT",
-            headers: { 'Content-Type': 'application/json', 'Authorization': `${token}` },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `${auth.value.token}` },
             body: JSON.stringify({
                 body: JSON.stringify({
                     listingID: listing.value.listingID,
                     sellerEmail: listing.value.sellerEmail,
-                    sub: sub.value,
+                    sub: auth.value.userID,
                     description: form.value.description,
                     name: form.value.name,
                     images: form.value.images,
@@ -568,7 +533,16 @@ function confirmDeletion() {
 function cancelDeletion() {
     isDeletionConfirmationVisible.value = false;
 }
-onMounted(verifyStauts);
+
+function closeValidationPopup() {
+  isValidationPopupVisible.value = false;
+}
+
+onMounted(async () => {
+    auth.value = await useAuth()
+    verifyStauts()
+});
+
 </script>
 
 <style scoped>

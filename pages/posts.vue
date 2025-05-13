@@ -41,40 +41,28 @@ definePageMeta({
 });
 
 import { ref, onMounted } from 'vue';
-import { fetchUserAttributes, fetchAuthSession } from 'aws-amplify/auth';
+import { useAuth } from '~/utils/useAuth'
 import EditCard from '~/components/EditCard.vue';
 
 const config = useRuntimeConfig().public;
 const listings = ref([]);
 const isLoading = ref(true);
-const userEmail = ref("");
 const isAuthenticated = ref(false);
+
+const auth = ref({ isAuthenticated: false, userID: '', userEmail: '', token: '' })
 
 async function fetchListings() {
     isLoading.value = true;
 
     try {
-        const session = await fetchAuthSession();
-        if (session && session.tokens) {
-            isAuthenticated.value = true;
-            const attributes = await fetchUserAttributes();
-            const token = session.tokens.idToken.toString();
-            userEmail.value = attributes.email || "";
-            if (!userEmail.value) {
-                console.error("User email not found");
-                isLoading.value = false;
-                return;
-            }
+        const response = await fetch(`${config.api_url}/user/listings?email=${auth.value.userEmail}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `${auth.value.token}` },
+        });
 
-            const response = await fetch(`${config.api_url}/user/listings?email=${userEmail.value}`, {
-                method: 'GET',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `${token}` },
-            });
-
-            const data = await response.json();
-            listings.value = JSON.parse(data.body);
-            console.log("Listings post: ",listings.value);
-        }
+        const data = await response.json();
+        listings.value = JSON.parse(data.body);
+        console.log("Listings post: ", listings.value);
     } catch (error) {
         console.error("Error fetching listings:", error);
         isAuthenticated.value = false;
@@ -83,7 +71,17 @@ async function fetchListings() {
     }
 }
 
-onMounted(fetchListings);
+onMounted(async () => {
+    auth.value = await useAuth()
+    if (!auth.value.isAuthenticated) {
+        isAuthenticated.value = false
+        isLoading.value = false
+        return
+    }
+
+    isAuthenticated.value = true
+    await fetchListings()
+})
 </script>
 
 <style scoped>

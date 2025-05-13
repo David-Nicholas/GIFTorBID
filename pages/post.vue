@@ -91,30 +91,14 @@
       </div>
     </div>
 
-    <!-- Validation Popup -->
-    <div v-if="isValidationPopupVisible" class="popup">
-      <div class="popup-content">
-        <p class="attribute-key">Please fill out all fields before submitting.</p>
-        <CustomButton :buttonText="'Close'" class="custom-btn" @activate="closeValidationPopup" />
-      </div>
-    </div>
+    <PopupDialog :visible="isValidationPopupVisible" message="Please fill out all fields before submitting."
+      @cancel="closeValidationPopup" />
 
-    <!-- Confirmation Popup for Donations -->
-    <div v-if="isDonationConfirmationVisible" class="popup">
-      <div class="popup-content">
-        <p class="attribute-key">Are you sure you want to donate this item?</p>
-        <CustomButton :buttonText="'Yes, Confirm'" class="custom-btn" @activate="confirmDonation" />
-        <CustomButton :buttonText="'Cancel'" class="custom-btn cancel-btn" @activate="cancelDonation" />
-      </div>
-    </div>
+    <PopupDialog :visible="isDonationConfirmationVisible" message="Are you sure you want to donate this item?"
+      confirmText="Yes, Confirm" cancelText="Cancel" @confirm="confirmDonation" @cancel="cancelDonation" />
 
-    <!-- Confirmation Popup -->
-    <div v-if="isPopupVisible" class="popup">
-      <div class="popup-content">
-        <p class="attribute-key">Your listing has been added successfully!</p>
-        <CustomButton :buttonText="'Close'" class="custom-btn" @activate="closePopup" />
-      </div>
-    </div>
+    <PopupDialog :visible="isPopupVisible" message="Your listing has been added successfully!" @cancel="closePopup" />
+
   </div>
 </template>
 
@@ -124,15 +108,13 @@ definePageMeta({
 });
 
 import { ref, onMounted } from 'vue';
-import { fetchUserAttributes, fetchAuthSession } from 'aws-amplify/auth';
+import { useAuth } from '~/utils/useAuth'
+import { useUpload } from '~/utils/useUpload'
+import PopupDialog from '~/components/PopupDialog.vue'
+import { categories } from '~/constants/categories'
 
 const config = useRuntimeConfig().public;
 const isAuthenticated = ref(false);
-const categories = [
-  'fashion', 'electronics', 'home appliances', 'culture and art', 'home and garden',
-  'leisure', 'entertainment', 'education', 'health', 'construction', 'toys'
-];
-
 
 const form = ref({
   name: '',
@@ -144,19 +126,18 @@ const form = ref({
 });
 
 const dropdowns = ref({ type: false, category: false });
-
-const imagePreviews = ref([]);
 const isPopupVisible = ref(false);
 const isValidationPopupVisible = ref(false);
 const isDonationConfirmationVisible = ref(false);
 const verifyAttributes = ref({});
 const isSubmitting = ref(false);
 const selectedDuration = ref(7);
-const sub = ref('');
 const isAuthFinish = ref(false);
 const informations = ref([]);
-
+const auth = ref({ isAuthenticated: false, userID: '', userEmail: '', token: '' })
 const durations = [2, 7, 14, 21];
+
+const { imagePreviews, images, handleImageUpload } = useUpload();
 
 function toggleDropdown(field) {
   dropdowns.value[field] = !dropdowns.value[field];
@@ -167,76 +148,42 @@ function selectOption(field, value) {
   dropdowns.value[field] = false;
 }
 
+onMounted(async () => {
+  auth.value = await useAuth()
+  await fetchAndSetUserAttributes()
+})
+
 async function fetchAndSetUserAttributes() {
   try {
-    const session = await fetchAuthSession();
-    if (session && session.tokens) {
-      isAuthenticated.value = true;
-      const token = session.tokens.idToken.toString();
-      const attributes = await fetchUserAttributes();
-      form.value.sellerEmail = attributes.email || '';
-      sub.value = attributes.sub;
-      const response = await fetch(`${config.api_url}/user/informations?userID=${sub.value}`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `${token}` },
-      });
-
-      const data = await response.json();
-      informations.value = JSON.parse(data.body);
-
-      console.log(informations.value);
-
-      verifyAttributes.value = {
-        country: informations.value.country || '',
-        county: informations.value.county || '',
-        city: informations.value.city || '',
-        address: informations.value.address || '',
-        postalCode: informations.value.postalCode || ''
-      };
-
-      isAuthFinish.value = Object.values(verifyAttributes.value).some(attr => attr.trim() === '');
+    if (!auth.value.isAuthenticated) {
+      isAuthenticated.value = false;
+      return;
     }
+
+    isAuthenticated.value = true;
+    form.value.sellerEmail = auth.value.userEmail;
+
+    const response = await fetch(`${config.api_url}/user/informations?userID=${auth.value.userID}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `${auth.value.token}` },
+    });
+
+    const data = await response.json();
+    informations.value = JSON.parse(data.body);
+
+    verifyAttributes.value = {
+      country: informations.value.country || '',
+      county: informations.value.county || '',
+      city: informations.value.city || '',
+      address: informations.value.address || '',
+      postalCode: informations.value.postalCode || ''
+    };
+
+    isAuthFinish.value = Object.values(verifyAttributes.value).some(attr => attr.trim() === '');
   } catch (error) {
     isAuthenticated.value = false;
     console.error('Error fetching user attributes:', error);
   }
-}
-
-function handleImageUpload(event) {
-  const files = event.target.files;
-  if (files.length > 3) {
-    alert('You can upload up to 3 images only.');
-    return;
-  }
-
-  form.value.images = [];
-  imagePreviews.value = [];
-
-  Array.from(files).forEach(file => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => {
-      compressImage(reader.result, (compressedBase64) => {
-        form.value.images.push(compressedBase64);
-        imagePreviews.value.push(compressedBase64);
-      });
-    };
-  });
-}
-
-function compressImage(base64Str, callback) {
-  const img = new Image();
-  img.src = base64Str;
-  img.onload = function () {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const maxWidth = 800;
-    const scaleSize = maxWidth / img.width;
-    canvas.width = maxWidth;
-    canvas.height = img.height * scaleSize;
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    callback(canvas.toDataURL('image/jpeg', 0.7));
-  };
 }
 
 function handleSubmit() {
@@ -246,6 +193,8 @@ function handleSubmit() {
     showValidationPopup();
     return;
   }
+
+  form.value.images = images.value;
 
   if (form.value.type === 'donation') {
     isDonationConfirmationVisible.value = true;
@@ -268,11 +217,8 @@ function cancelDonation() {
 async function submitListing() {
   isSubmitting.value = true;
   try {
-    const session = await fetchAuthSession();
-    const token = session.tokens.idToken.toString();
-    console.log(token);
     const listingData = { ...form.value };
-    listingData.sub = sub.value
+    listingData.sub = auth.value.userID;
 
     if (form.value.type === 'auction') {
       listingData.duration = selectedDuration.value;
@@ -280,11 +226,9 @@ async function submitListing() {
 
     const response = await fetch(`${config.api_url}/user/listings/listing`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${auth.value.token}` },
       body: JSON.stringify({ body: JSON.stringify(listingData) })
     });
-
-    console.log("Body: ", JSON.stringify(listingData));
 
     if (!response.ok) throw new Error('Failed to submit listing');
 
@@ -315,8 +259,6 @@ function showValidationPopup() {
 function closeValidationPopup() {
   isValidationPopupVisible.value = false;
 }
-
-onMounted(fetchAndSetUserAttributes);
 </script>
 
 <style scoped>

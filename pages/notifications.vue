@@ -24,14 +24,14 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { fetchAuthSession, fetchUserAttributes } from 'aws-amplify/auth'
+import { useAuth } from '~/utils/useAuth'
 
 definePageMeta({ colorMode: 'light' })
 
 const config = useRuntimeConfig().public
-const userID = ref('')
 const notifications = ref([])
 const router = useRouter()
+const auth = ref({ isAuthenticated: false, userID: '', userEmail: '', token: '' })
 
 const reversedNotifications = computed(() => {
   return [...notifications.value].reverse()
@@ -43,17 +43,14 @@ function goTo(path) {
 
 async function getUserMessages() {
   try {
-    const session = await fetchAuthSession()
-    if (session?.tokens) {
-      const token = session.tokens.idToken.toString()
-      const attributes = await fetchUserAttributes()
-      userID.value = attributes.sub
+    auth.value = await useAuth()
+    if (!auth.isAuthenticated) return
 
-      const response = await fetch(`${config.api_url}/user/messages?userID=${userID.value}`, {
+      const response = await fetch(`${config.api_url}/user/messages?userID=${auth.value.userID}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `${token}`
+          Authorization: `${auth.value.token}`
         }
       })
 
@@ -62,7 +59,6 @@ async function getUserMessages() {
 
       notifications.value = Array.isArray(parsed.notifications) ? parsed.notifications : []
       console.log('Fetched notifications:', notifications.value)
-    }
   } catch (error) {
     console.error('Error fetching notifications:', error)
   }

@@ -37,21 +37,12 @@
       </div>
     </div>
 
-    <!-- Missing form input popup -->
-    <div v-if="isValidationPopupVisible" class="popup">
-      <div class="popup-content">
-        <p class="attribute-key">Please fill out all fields before submitting.</p>
-        <CustomButton :buttonText="'Close'" class="custom-btn" @activate="closeValidationPopup" />
-      </div>
-    </div>
+    <PopupDialog :visible="isValidationPopupVisible" message="Please fill out all fields before submitting."
+      @cancel="closeValidationPopup" />
 
-    <!-- Form sent confirmation popup -->
-    <div v-if="isPopupVisible" class="popup">
-      <div class="popup-content">
-        <p class="attribute-key">Thank you for reaching out! We will get back to you soon.</p>
-        <CustomButton :buttonText="'Close'" class="custom-btn" @activate="closePopup" />
-      </div>
-    </div>
+    <PopupDialog :visible="isPopupVisible" message="Thank you for reaching out! We will get back to you soon."
+      @cancel="closePopup" />
+
   </div>
 </template>
 
@@ -61,7 +52,12 @@ definePageMeta({
 });
 
 import { ref, onMounted } from 'vue';
-import { fetchUserAttributes, fetchAuthSession } from 'aws-amplify/auth';
+import { useAuth } from '~/utils/useAuth'
+import { fetchUserAttributes } from 'aws-amplify/auth';
+import PopupDialog from '~/components/PopupDialog.vue'
+
+
+const auth = ref({ isAuthenticated: false, userID: '', userEmail: '', token: '' })
 
 const config = useRuntimeConfig().public;
 
@@ -81,15 +77,13 @@ const nonEditableAttributes = ref({});
 // Fetch user attributes and autofill the form fields
 async function fetchAndSetUserAttributes() {
   try {
-    const session = await fetchAuthSession();
-    if (session && session.tokens) {
-      const attributes = await fetchUserAttributes();
-      const filtered = Object.fromEntries(
-        Object.entries(attributes).filter(([key]) => defaultNonModifiableAttributes.includes(key))
-      );
-      form.value.name = filtered.name || '';
-      form.value.email = filtered.email || '';
-    }
+    if (!auth.value.isAuthenticated) return;
+    const attributes = await fetchUserAttributes();
+    const filtered = Object.fromEntries(
+      Object.entries(attributes).filter(([key]) => defaultNonModifiableAttributes.includes(key))
+    );
+    form.value.name = filtered.name || '';
+    form.value.email = filtered.email || '';
   } catch (error) {
     console.error('Error fetching user attributes:', error);
   }
@@ -147,7 +141,10 @@ function closeValidationPopup() {
 }
 
 // Load user attributes on component mount
-onMounted(fetchAndSetUserAttributes);
+onMounted(async () => {
+  auth.value = await useAuth()
+  await fetchAndSetUserAttributes()
+})
 </script>
 
 

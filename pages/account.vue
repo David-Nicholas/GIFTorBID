@@ -33,7 +33,9 @@
                 <div class="custom-non-modifiable-columns">
                   <div v-for="(value, key) in filteredNonModifiableCustomAttributes()" :key="key"
                     class="custom-attribute-column">
-                    <NuxtLink :to="routeForAttribute(key)"><p class="custom-attribute-key">{{ formatKey(key) }}</p></NuxtLink>
+                    <NuxtLink :to="routeForAttribute(key)">
+                      <p class="custom-attribute-key">{{ formatKey(key) }}</p>
+                    </NuxtLink>
                     <div class="custom-attribute-box">
                       <NuxtLink :to="routeForAttribute(key)">{{ value || '0' }}</NuxtLink>
                     </div>
@@ -72,29 +74,16 @@
       </Authenticator>
 
       <!-- Delete popup -->
-      <div v-if="isDeletePopupVisible" class="popup">
-        <div class="popup-content">
-          <p class="attribute-key">Are you sure you want to delete your account?</p>
-          <CustomButton :buttonText="'Delete'" class="custom-btn" @activate="handleDeleteUser()" />
-          <CustomButton :buttonText="'Cancel'" class="custom-btn" @activate="closeDeletePopup()" />
-        </div>
-      </div>
+      <PopupDialog :visible="isDeletePopupVisible" message="Are you sure you want to delete your account?"
+        confirmText="Delete" cancelText="Cancel" @confirm="handleDeleteUser" @cancel="closeDeletePopup" />
 
       <!-- Delete successful popup -->
-      <div v-if="isDeleteSuccessPopupVisible" class="popup">
-        <div class="popup-content">
-          <p class="attribute-key">The account was deleted</p>
-          <CustomButton :buttonText="'Close'" class="custom-btn" @activate="closeDeleteSuccessPopup()" />
-        </div>
-      </div>
+      <PopupDialog :visible="isDeleteSuccessPopupVisible" message="The account was deleted" cancelText="Close"
+        @cancel="closeDeleteSuccessPopup" />
 
       <!-- Attribute changed popup -->
-      <div v-if="isChangePopupVisible" class="popup">
-        <div class="popup-content">
-          <p class="attribute-key">The information was changed</p>
-          <CustomButton :buttonText="'Close'" class="custom-btn" @activate="closeChangePopup()" />
-        </div>
-      </div>
+      <PopupDialog :visible="isChangePopupVisible" message="The information was changed" cancelText="Close"
+        @cancel="closeChangePopup" />
 
     </div>
   </div>
@@ -108,10 +97,20 @@ definePageMeta({
 import { Authenticator } from "@aws-amplify/ui-vue";
 import "@aws-amplify/ui-vue/styles.css";
 import { ref } from 'vue';
-import { fetchUserAttributes, deleteUser, fetchAuthSession } from 'aws-amplify/auth';
+import { fetchUserAttributes, deleteUser } from 'aws-amplify/auth';
 import { useRouter } from 'vue-router';
 import { Hub } from 'aws-amplify/utils';
 import WarnMessage from "~/components/WarnMessage.vue";
+import { useAuth } from '~/utils/useAuth'
+import PopupDialog from '~/components/PopupDialog.vue'
+
+const auth = ref({ isAuthenticated: false, userID: '', userEmail: '', token: '' })
+
+onMounted(async () => {
+  auth.value = await useAuth()
+  fetchAndSetNonModifiableAttributes()
+  getUserInformations()
+})
 
 Hub.listen('auth', ({ payload }) => {
   switch (payload.event) {
@@ -144,20 +143,12 @@ const showError = ref(false);
 
 const informations = ref([]);
 
-const userID = ref('');
-const userEmail = ref('');
-
 async function getUserInformations() {
   try {
-    const session = await fetchAuthSession();
-    if (session && session.tokens) {
-    const token = session.tokens.idToken.toString();
-    const attributes = await fetchUserAttributes();
-    userID.value = attributes.sub;
-    userEmail.value = attributes.email || "";
-    const response = await fetch(`${config.api_url}/user/informations?userID=${userID.value}`, {
+    if (!auth.value.isAuthenticated) return;
+    const response = await fetch(`${config.api_url}/user/informations?userID=${auth.value.userID}`, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `${token}` },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `${auth.value.token}` },
     });
 
     const data = await response.json();
@@ -180,7 +171,6 @@ async function getUserInformations() {
       redeemedIDs: informations.value.redeemedIDs?.length || 0,
       averageRating: informations.value.averageRating || '0'
     };
-  }
   } catch (error) {
     console.error("Error fetching user:", error);
   }
@@ -189,17 +179,16 @@ async function getUserInformations() {
 
 async function updateUserInformations() {
   try {
-    const session = await fetchAuthSession();
-    const token = session.tokens.idToken.toString();
+    if (!auth.value.isAuthenticated) return;
     showError.value = Object.values(tableEditableAttributes.value).some(attr => attr.trim() === '');
-    if(showError.value) {
+    if (showError.value) {
       return;
     }
     const response = await fetch(`${config.api_url}/user/informations`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `${token}`,
+        'Authorization': `${auth.value.token}`,
       },
       body: JSON.stringify({
         body: JSON.stringify({
@@ -208,7 +197,7 @@ async function updateUserInformations() {
           city: tableEditableAttributes.value.city,
           address: tableEditableAttributes.value.address,
           postalCode: tableEditableAttributes.value.postalCode,
-          userID: userID.value
+          userID: auth.value.userID
         })
       }),
     });
@@ -228,14 +217,12 @@ async function updateUserInformations() {
 // Default non-modifiable attributes
 async function fetchAndSetNonModifiableAttributes() {
   try {
-    const session = await fetchAuthSession();
-    if (session && session.tokens) {
-      const attributes = await fetchUserAttributes();
-      const filtered = Object.fromEntries(
-        Object.entries(attributes).filter(([key]) => cognitoNonModifiableAttributes.includes(key))
-      );
-      cognitoNonEditableAttributes.value = { ...filtered };
-    }
+    if (!auth.value.isAuthenticated) return;
+    const attributes = await fetchUserAttributes();
+    const filtered = Object.fromEntries(
+      Object.entries(attributes).filter(([key]) => cognitoNonModifiableAttributes.includes(key))
+    );
+    cognitoNonEditableAttributes.value = { ...filtered };
   } catch (error) {
     console.error('Error fetching user attributes:', error);
   }
@@ -265,11 +252,11 @@ function getPlaceholderForCustomAttribute(key) {
 }
 
 function routeForAttribute(key) {
-  if (!userEmail.value && key === 'averageRating') return '/reviews/missing';
+  if (!auth.value.userEmail && key === 'averageRating') return '/reviews/missing';
 
   switch (key) {
     case 'averageRating':
-      return `/reviews/${userEmail.value}`;
+      return `/reviews/${auth.value.userEmail}`;
     case 'listingsIDs':
       return '/posts';
     case 'redeemedIDs':
@@ -346,8 +333,6 @@ function closeChangePopup() {
   isChangePopupVisible.value = false;
   fetchAndSetNonModifiableAttributes();
 }
-onMounted(fetchAndSetNonModifiableAttributes);
-onMounted(getUserInformations);
 </script>
 
 <style scoped>

@@ -43,7 +43,8 @@
           <div v-if="listing.type === 'auction'" class="bids-table">
             <h2 class="text-xl font-semibold mt-4 mb-2">Bids</h2>
             <UTable v-if="listing.bids.length > 0" :rows="listing.bids" sticky class="max-h-[200px]"
-              :columns="[{ key: 'bidderEmail', label: 'Bidder' }, { key: 'amount', label: 'Amount' }, { key: 'time', label: 'Date' }]" @select="goToReviewerPage"/>
+              :columns="[{ key: 'bidderEmail', label: 'Bidder' }, { key: 'amount', label: 'Amount' }, { key: 'time', label: 'Date' }]"
+              @select="goToReviewerPage" />
             <p v-else class="text-gray-500">No bids have been placed yet for this acution.</p>
           </div>
           <div v-if="isAuthenticated">
@@ -97,32 +98,25 @@
     <div class="content-container">
       <div class="large-info-container">
         <p class="title-paragraph">Seller: {{ listing.sellerEmail }}</p>
-        <p class="title-paragraph"><a :href="'tel:' + statistincs.phoneNumber">Phone Number: {{ statistincs.phoneNumber }}</a></p>
+        <p class="title-paragraph"><a :href="'tel:' + statistincs.phoneNumber">Phone Number: {{ statistincs.phoneNumber
+        }}</a></p>
         <p class="title-paragraph">Rating: {{ statistincs.averageRating }}</p>
         <UTable v-if="statistincs.reviews?.length > 0" :rows="statistincs.reviews" sticky class="max-h-[200px] mt-4"
           :columns="[
             { key: 'message', label: 'Review' },
-            { key: 'writerEmail', label: 'Reviewer' } ,
+            { key: 'writerEmail', label: 'Reviewer' },
             { key: 'rating', label: 'Rating' }
-          ]" @select="goToReviewerPage"/>
+          ]" @select="goToReviewerPage" />
         <p v-else class="text-gray-500 mt-4">No reviews for this seller yet.</p>
 
       </div>
     </div>
     <!-- Validation Popup -->
-    <div v-if="isValidationPopupVisible" class="popup">
-      <div class="popup-content">
-        <p class="attribute-key">Congrats you are the higher bidder!</p>
-        <CustomButton :buttonText="'Close'" class="custom-btn" @activate="closeValidationPopup" />
-      </div>
-    </div>
+    <PopupDialog :visible="isValidationPopupVisible" message="Congrats you are the higher bidder!"
+      @cancel="closeValidationPopup" />
     <!-- Small bid Popup -->
-    <div v-if="isBidTooSmall" class="popup">
-      <div class="popup-content">
-        <p class="attribute-key">The bid is lower then the higher existing one!</p>
-        <CustomButton :buttonText="'Close'" class="custom-btn" @activate="closeBidTooSmallPopup" />
-      </div>
-    </div>
+    <PopupDialog :visible="isBidTooSmall" message="The bid is lower than the highest existing one!"
+      @cancel="closeBidTooSmallPopup" />
   </div>
 </template>
 
@@ -131,12 +125,14 @@ definePageMeta({
   colorMode: 'light',
 });
 import { useRoute } from 'vue-router';
-import { fetchAuthSession, fetchUserAttributes } from 'aws-amplify/auth';
+import { useAuth } from '~/utils/useAuth'
 import { useState } from "#app";
 import { DateTime } from 'luxon';
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { watch } from 'vue'
 import { useWebSocket } from '~/utils/useWebSocket'
+import PopupDialog from '~/components/PopupDialog.vue'
+
 
 const { lastMessage } = useWebSocket()
 
@@ -152,10 +148,7 @@ const route = useRoute();
 const isLoading = ref(true);
 const config = useRuntimeConfig().public;
 const listing = ref([]);
-const listingID = ref("");
 const isAuthenticated = ref(false);
-const sub = ref('');
-const userEmail = ref('');
 const isOwner = ref(false);
 const isRedeemed = ref(false);
 const isRedeemer = ref(false);
@@ -172,6 +165,8 @@ const now = ref(DateTime.now());
 
 const selectedListing = useState("selectedListing");
 const router = useRouter();
+
+const auth = ref({ isAuthenticated: false, userID: '', userEmail: '', token: '' })
 
 function goToEditPage() {
   selectedListing.value = listing.value;
@@ -192,7 +187,7 @@ function goToReviewerPage(row) {
   if (row?.writerEmail) {
     router.push(`/reviews/${row.writerEmail}`);
   }
-  if(row?.bidderEmail) {
+  if (row?.bidderEmail) {
     router.push(`/reviews/${row.bidderEmail}`);
   }
 }
@@ -228,14 +223,12 @@ const statistincs = ref([]);
 
 async function getSellerReviews(email) {
   try {
-    const session = await fetchAuthSession()
-    const token = session.tokens.idToken.toString()
 
-    const response = await fetch(`${config.api_url}/user/review?userEmail=${email}`, {
+    const response = await fetch(`${config.api_url}/user/review?userEmail=${auth.value.userEmail}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `${token}`
+        Authorization: `${auth.value.token}`
       }
     })
 
@@ -265,18 +258,15 @@ async function bidOnItem() {
         return;
       }
     }
-
-    const session = await fetchAuthSession();
-    const token = session.tokens.idToken.toString();
     const response = await fetch(`${config.api_url}/listings/listing/auction`, {
       method: "PUT",
-      headers: { 'Content-Type': 'application/json', 'Authorization': `${token}` },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `${auth.value.token}` },
       body: JSON.stringify({
         body: JSON.stringify({
           listingID: listing.value.listingID,
           bidAmount: bidAmount.value,
-          sub: sub.value,
-          bidderEmail: userEmail.value,
+          sub: auth.value.userID,
+          bidderEmail: auth.value.userEmail,
           name: listing.value.name
         })
       })
@@ -294,22 +284,26 @@ async function bidOnItem() {
 }
 
 async function fetchListings() {
-  const session = await fetchAuthSession();
-  if (session && session.tokens) {
-    isAuthenticated.value = true;
-    const token = session.tokens.idToken.toString();
-    const attributes = await fetchUserAttributes();
-    userEmail.value = attributes.email || '';
-    sub.value = attributes.sub;
-    const response = await fetch(`${config.api_url}/user/informations?userID=${sub.value}`, {
+  isLoading.value = true;
+
+  if (!auth.value.isAuthenticated) {
+    isAuthenticated.value = false;
+    return;
+  }
+
+  isAuthenticated.value = true;
+
+  try {
+    const response = await fetch(`${config.api_url}/user/informations?userID=${auth.value.userID}`, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `${token}` },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `${auth.value.token}`
+      }
     });
 
     const data = await response.json();
     informations.value = JSON.parse(data.body);
-
-    console.log(informations.value);
 
     verifyAttributes.value = {
       country: informations.value.country || '',
@@ -320,67 +314,35 @@ async function fetchListings() {
     };
 
     isAuthFinish.value = Object.values(verifyAttributes.value).some(attr => attr.trim() === '');
-  } else {
-    isAuthenticated.value = false;
-  }
-  isLoading.value = true;
-  listingID.value = route.params.id;
-  try {
 
-    const response = await fetch(`${config.api_url}/listings/listing?listingID=${listingID.value}`, {
+    const listingResponse = await fetch(`${config.api_url}/listings/listing?listingID=${route.params.id}`, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json' }
     });
 
-    const data = await response.json();
-    listing.value = JSON.parse(data.body);
+    listing.value = JSON.parse((await listingResponse.json()).body);
 
-    console.log(data);
-    try {
-      const response = await fetch(`${config.api_url}/user/review?userEmail=${listing.value.sellerEmail}`, {
-        method: 'GET'
-      })
-
-      const data = await response.json()
-      statistincs.value = JSON.parse(data.body)
-      console.log(statistincs.value);
-    } catch (error) {
-      console.error('Error fetching seller reviews:', error)
-    }
-  } catch (error) {
-    console.error("Error fetching listings:", error);
-    lising.value = [];
-  } finally {
-    isLoading.value = false;
-    console.log("This is current user email ", userEmail.value);
-    console.log("This is seller email ", listing.value.sellerEmail);
-    if (userEmail.value !== '') {
-      if (userEmail.value === listing.value.sellerEmail) {
-        isOwner.value = true;
-      } else {
-        isOwner.value = false;
-      }
+    if (auth.value.userEmail === listing.value.sellerEmail) {
+      isOwner.value = true;
     } else {
       isOwner.value = false;
     }
-    if (listing.value.redeemerEmail !== '') {
-      if (userEmail.value === listing.value.redeemerEmail) {
-        isRedeemer.value = true;
-      } else {
-        isRedeemer.value = false;
-      }
+
+    if (listing.value.redeemerEmail) {
       isRedeemed.value = true;
+      isRedeemer.value = auth.value.userEmail === listing.value.redeemerEmail;
     } else {
       isRedeemed.value = false;
-      if (listing.value.bids.length > 0)
-        if (userEmail.value === listing.value.bids[0].bidderEmail) {
-          isHighestBidder.value = true;
-        } else {
-          isHighestBidder.value = false;
-        }
+      isHighestBidder.value = listing.value.bids[0]?.bidderEmail === auth.value.userEmail;
     }
+
+  } catch (error) {
+    console.error("Error fetching listing or user info:", error);
+  } finally {
+    isLoading.value = false;
   }
 }
+
 
 function closeValidationPopup() {
   isValidationPopupVisible.value = false;
@@ -402,7 +364,10 @@ onMounted(() => {
 onUnmounted(() => {
   clearInterval(interval);
 });
-onMounted(fetchListings);
+onMounted(async () => {
+  auth.value = await useAuth()
+  fetchListings()
+})
 </script>
 
 <style scoped>

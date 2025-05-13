@@ -19,41 +19,42 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router';
-import { fetchAuthSession, fetchUserAttributes } from 'aws-amplify/auth'
+import { ref, onMounted, computed } from 'vue'
+import { useRoute } from 'vue-router'
+import { useAuth } from '~/utils/useAuth'
 
 definePageMeta({ colorMode: 'light' })
 
-const route = useRoute();
-
+const route = useRoute()
 const config = useRuntimeConfig().public
-const userEmail = ref('')
-const statistincs = ref([]);
+
+const auth = ref({ isAuthenticated: false, userID: '', userEmail: '', token: '' })
+const targetEmail = ref('')
+const statistincs = ref([])
+
+const displayName = computed(() => {
+  return targetEmail.value === auth.value.userEmail ? 'Your' : targetEmail.value
+})
 
 async function getUserReviews() {
-    try {
-        userEmail.value = route.params.id;
-        const response = await fetch(`${config.api_url}/user/review?userEmail=${userEmail.value}`, {
-            method: 'GET',
-        })
+  try {
+    targetEmail.value = route.params.id
 
-        const data = await response.json()
-        statistincs.value = JSON.parse(data.body)
-        console.log(statistincs.value);
-        const session = await fetchAuthSession()
-        if (session?.tokens) {
-            const attributes = await fetchUserAttributes()
-            if(userEmail.value == attributes.email){
-                userEmail.value = 'Your'
-            }
-        }
-    } catch (error) {
-        console.error('Error fetching reviews:', error)
-    }
+    const response = await fetch(`${config.api_url}/user/review?userEmail=${targetEmail.value}`, {
+      method: 'GET'
+    })
+
+    const data = await response.json()
+    statistincs.value = JSON.parse(data.body)
+  } catch (error) {
+    console.error('Error fetching reviews:', error)
+  }
 }
 
-onMounted(getUserReviews)
+onMounted(async () => {
+  auth.value = await useAuth()
+  await getUserReviews()
+})
 </script>
 
 <style scoped>

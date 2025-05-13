@@ -1,4 +1,3 @@
-// ~/utils/useWebSocket.ts
 import { ref } from 'vue'
 
 let socket: WebSocket | null = null
