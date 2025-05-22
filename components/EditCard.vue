@@ -36,16 +36,16 @@ function goToEditPage() {
     router.push(`/edit/${props.listing.listingID}`);
 }
 
-const firstImage = computed(() => {
-    return `https://upload.wikimedia.org/wikipedia/commons/a/a3/Image-not-found.png?20210521171500`;
-});
+// const firstImage = computed(() => {
+//     return `https://upload.wikimedia.org/wikipedia/commons/a/a3/Image-not-found.png?20210521171500`;
+// });
 
 // Get the first image from the list or use a placeholder if none exists
-// const firstImage = computed(() => {
-//   return props.listing.images.length > 0
-//     ? props.listing.images[0] 
-//     : "https://upload.wikimedia.org/wikipedia/commons/a/a3/Image-not-found.png?20210521171500"; // Placeholder if no image exists
-// });
+const firstImage = computed(() => {
+  return props.listing.images.length > 0
+    ? props.listing.images[0] 
+    : "https://upload.wikimedia.org/wikipedia/commons/a/a3/Image-not-found.png?20210521171500"; // Placeholder if no image exists
+});
 
 const buttonColor = computed(() => {
     return props.listing.type === "auction" ? "#EBA92E" : "#35A45F";
