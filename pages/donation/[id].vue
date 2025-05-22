@@ -5,10 +5,19 @@
         <p>Loading donation listings...</p>
       </div>
       <p class="name-paragraph">{{ listing.name }}</p>
-      <UCarousel v-slot="{ item }" :items="listingImages" :ui="{ item: 'basis-full' }"
-        class="overflow-hidden max-w-full mb-[40px]" arrows>
-        <img :src="item" class="w-full m-h-[500px] object-center" draggable="false">
-      </UCarousel>
+      <div class="custom-carousel">
+        <div class="carousel-wrapper">
+          <div class="arrow left-arrow" @click="prevImage">&#10094;</div>
+          <img :src="listingImages[currentImageIndex]" class="carousel-image"
+            :alt="'Image ' + (currentImageIndex + 1)" />
+          <div class="arrow right-arrow" @click="nextImage">&#10095;</div>
+        </div>
+        <div class="carousel-dots">
+          <span v-for="(img, index) in listingImages" :key="index" class="dot"
+            :class="{ active: index === currentImageIndex }" @click="currentImageIndex = index"></span>
+        </div>
+      </div>
+
     </div>
     <div class="content-container">
       <div class="left-column">
@@ -74,13 +83,15 @@
     <div class="content-container">
       <div class="large-info-container">
         <p class="title-paragraph">Seller: {{ listing.sellerEmail }}</p>
-        <p class="title-paragraph"><a :href="'tel:' + statistincs.phoneNumber">Phone Number: {{ statistincs.phoneNumber }}</a></p>
+        <p class="title-paragraph"><a :href="'tel:' + statistincs.phoneNumber">Phone Number: {{ statistincs.phoneNumber
+            }}</a></p>
         <p class="title-paragraph">Rating: {{ statistincs.averageRating }}</p>
-        <UTable v-if="statistincs.reviews?.length > 0" :rows="statistincs.reviews" sticky class="max-h-[200px] mt-4" :columns="[
-          { key: 'message', label: 'Review' },
-          { key: 'writerEmail', label: 'Reviewer' },
-          { key: 'rating', label: 'Rating' }
-        ]" @select="goToReviewerPage"/>
+        <UTable v-if="statistincs.reviews?.length > 0" :rows="statistincs.reviews" sticky class="max-h-[200px] mt-4"
+          :columns="[
+            { key: 'message', label: 'Review' },
+            { key: 'writerEmail', label: 'Reviewer' },
+            { key: 'rating', label: 'Rating' }
+          ]" @select="goToReviewerPage" />
         <p v-else class="text-gray-500 mt-4">No reviews for this seller yet.</p>
 
       </div>
@@ -283,9 +294,78 @@ function closeValidationPopup() {
 }
 
 onMounted(fetchListings);
+
+const currentImageIndex = ref(0);
+
+function nextImage() {
+  if (currentImageIndex.value < listingImages.value.length - 1) {
+    currentImageIndex.value++;
+  } else {
+    currentImageIndex.value = 0;
+  }
+}
+
+function prevImage() {
+  if (currentImageIndex.value > 0) {
+    currentImageIndex.value--;
+  } else {
+    currentImageIndex.value = listingImages.value.length - 1;
+  }
+}
+
 </script>
 
 <style scoped>
+.custom-carousel {
+  width: 80%;
+  margin: 0 auto 40px;
+  text-align: center;
+}
+
+.carousel-wrapper {
+  position: relative;
+  height: 400px;
+  background: #2596be;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.carousel-image {
+  max-height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+  background-color: black;
+}
+
+.arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  color: white;
+  font-size: 28px;
+  cursor: pointer;
+  z-index: 1;
+  user-select: none;
+  padding: 10px;
+}
+
+.left-arrow {
+  left: 10px;
+}
+
+.right-arrow {
+  right: 10px;
+}
+
+.carousel-dots {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+}
+
 .container {
   max-width: 100%;
   padding-left: 20px;

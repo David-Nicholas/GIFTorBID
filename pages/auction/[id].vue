@@ -5,10 +5,19 @@
         <p>Loading donation listings...</p>
       </div>
       <p class="name-paragraph">{{ listing.name }}</p>
-      <UCarousel v-slot="{ item }" :items="listingImages" :ui="{ item: 'basis-full' }"
-        class="overflow-hidden max-w-full mb-[40px]" arrows>
-        <img :src="item" class="w-full m-h-[500px] object-center" draggable="false">
-      </UCarousel>
+      <div class="custom-carousel">
+        <div class="carousel-wrapper">
+          <div class="arrow left-arrow" @click="prevImage">&#10094;</div>
+          <img :src="listingImages[currentImageIndex]" class="carousel-image"
+            :alt="'Image ' + (currentImageIndex + 1)" />
+          <div class="arrow right-arrow" @click="nextImage">&#10095;</div>
+        </div>
+        <div class="carousel-dots">
+          <span v-for="(img, index) in listingImages" :key="index" class="dot"
+            :class="{ active: index === currentImageIndex }" @click="currentImageIndex = index"></span>
+        </div>
+      </div>
+
       <p v-if="timeLeft && !timeLeft.ended">
         <span v-if="timeLeft.days > 0">
           Time left: {{ timeLeft.days }} day<span v-if="timeLeft.days !== 1">s</span>,
@@ -43,7 +52,8 @@
           <div v-if="listing.type === 'auction'" class="bids-table">
             <h2 class="text-xl font-semibold mt-4 mb-2">Bids</h2>
             <UTable v-if="listing.bids.length > 0" :rows="listing.bids" sticky class="max-h-[200px]"
-              :columns="[{ key: 'bidderEmail', label: 'Bidder' }, { key: 'amount', label: 'Amount' }, { key: 'time', label: 'Date' }]" @select="goToReviewerPage"/>
+              :columns="[{ key: 'bidderEmail', label: 'Bidder' }, { key: 'amount', label: 'Amount' }, { key: 'time', label: 'Date' }]"
+              @select="goToReviewerPage" />
             <p v-else class="text-gray-500">No bids have been placed yet for this acution.</p>
           </div>
           <div v-if="isAuthenticated">
@@ -97,14 +107,15 @@
     <div class="content-container">
       <div class="large-info-container">
         <p class="title-paragraph">Seller: {{ listing.sellerEmail }}</p>
-        <p class="title-paragraph"><a :href="'tel:' + statistincs.phoneNumber">Phone Number: {{ statistincs.phoneNumber }}</a></p>
+        <p class="title-paragraph"><a :href="'tel:' + statistincs.phoneNumber">Phone Number: {{ statistincs.phoneNumber
+            }}</a></p>
         <p class="title-paragraph">Rating: {{ statistincs.averageRating }}</p>
         <UTable v-if="statistincs.reviews?.length > 0" :rows="statistincs.reviews" sticky class="max-h-[200px] mt-4"
           :columns="[
             { key: 'message', label: 'Review' },
-            { key: 'writerEmail', label: 'Reviewer' } ,
+            { key: 'writerEmail', label: 'Reviewer' },
             { key: 'rating', label: 'Rating' }
-          ]" @select="goToReviewerPage"/>
+          ]" @select="goToReviewerPage" />
         <p v-else class="text-gray-500 mt-4">No reviews for this seller yet.</p>
 
       </div>
@@ -192,7 +203,7 @@ function goToReviewerPage(row) {
   if (row?.writerEmail) {
     router.push(`/reviews/${row.writerEmail}`);
   }
-  if(row?.bidderEmail) {
+  if (row?.bidderEmail) {
     router.push(`/reviews/${row.bidderEmail}`);
   }
 }
@@ -403,9 +414,93 @@ onUnmounted(() => {
   clearInterval(interval);
 });
 onMounted(fetchListings);
+
+const currentImageIndex = ref(0);
+
+function nextImage() {
+  if (currentImageIndex.value < listingImages.value.length - 1) {
+    currentImageIndex.value++;
+  } else {
+    currentImageIndex.value = 0;
+  }
+}
+
+function prevImage() {
+  if (currentImageIndex.value > 0) {
+    currentImageIndex.value--;
+  } else {
+    currentImageIndex.value = listingImages.value.length - 1;
+  }
+}
+
 </script>
 
 <style scoped>
+.custom-carousel {
+  width: 80%;
+  margin: 0 auto 40px;
+  text-align: center;
+}
+
+.carousel-wrapper {
+  position: relative;
+  height: 400px;
+  background: #2596be;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.carousel-image {
+  max-height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+  background-color: black;
+}
+
+.arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  color: white;
+  font-size: 28px;
+  cursor: pointer;
+  z-index: 1;
+  user-select: none;
+  padding: 10px;
+}
+
+.left-arrow {
+  left: 10px;
+}
+
+.right-arrow {
+  right: 10px;
+}
+
+.carousel-dots {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.dot {
+  height: 10px;
+  width: 10px;
+  margin: 0 6px;
+  background-color: #bbb;
+  border-radius: 50%;
+  display: inline-block;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.dot.active {
+  background-color: #717171;
+}
+
 .container {
   max-width: 100%;
   padding-left: 20px;
