@@ -21,6 +21,7 @@
             <div v-if="isOrdered">
                 <div class="info-section">
                     <p class="paragraph-style">AWB {{ order.awb }}</p>
+                    <p class="paragraph-style">Pay at delivery: {{ order.cost }} RON</p>
                     <p class="paragraph-style" v-if="timeLeft && !timeLeft.ended">
                         Time until you can review the seller:
                         <span v-if="timeLeft.days > 0">
@@ -47,9 +48,7 @@
     <!-- Confirmation Popup for Deletion -->
     <div v-if="isConfirmationVisible" class="popup">
         <div class="popup-content">
-            <p class="attribute-key">Are you sure you want to order this item? This will trigger a generation of AWB
-                and
-                bouth you and the seller will recive an email with the inforamtions about the shpping details.</p>
+            <p class="attribute-key">By pressing 'Yes, Confirm' and AWB will be generated. If you orderder a donation the shipping fee is 10 RON if it an auction is your BID + 10 RON</p>
             <CustomButton :buttonText="'Yes, Confirm'" class="custom-btn" @activate="confirmOrder" />
             <CustomButton :buttonText="'Cancel'" class="custom-btn cancel-btn" @activate="cancelOrder" />
         </div>

@@ -85,8 +85,9 @@
                     <p class="unauthenticated-message">One more step. You need to go to account and complete all the
                       informations.</p>
                   </div>
-                  <div v-if="!isAuthFinish" class="left-column">
+                  <div v-if="!isAuthFinish" class="left-column" style="display: flex; align-items: center; gap: 8px;">
                     <input v-model="bidAmount" type="text" placeholder="Input amount" class="attribute-input">
+                    <p>RON</p>
                   </div>
                   <div v-if="!isAuthFinish" class="right-column">
                     <CustomButton :buttonText="'Bid'" class="custom-btn" @activate="bidOnItem()" />
