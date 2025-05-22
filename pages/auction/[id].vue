@@ -9,13 +9,17 @@
         <div class="carousel-wrapper">
           <div class="arrow left-arrow" @click="prevImage">&#10094;</div>
           <img :src="listingImages[currentImageIndex]" class="carousel-image"
-            :alt="'Image ' + (currentImageIndex + 1)" />
+            :alt="'Image ' + (currentImageIndex + 1)" @click="zoomImage" />
           <div class="arrow right-arrow" @click="nextImage">&#10095;</div>
         </div>
         <div class="carousel-dots">
           <span v-for="(img, index) in listingImages" :key="index" class="dot"
             :class="{ active: index === currentImageIndex }" @click="currentImageIndex = index"></span>
         </div>
+      </div>
+      <div v-if="isZoomed" class="zoom-modal" @click.self="closeZoom">
+        <img :src="listingImages[currentImageIndex]" class="zoomed-image"/>
+        <span class="close-zoom" @click="closeZoom">&times;</span>
       </div>
 
       <p v-if="timeLeft && !timeLeft.ended">
@@ -109,7 +113,7 @@
       <div class="large-info-container">
         <p class="title-paragraph">Seller: {{ listing.sellerEmail }}</p>
         <p class="title-paragraph"><a :href="'tel:' + statistincs.phoneNumber">Phone Number: {{ statistincs.phoneNumber
-            }}</a></p>
+        }}</a></p>
         <p class="title-paragraph">Rating: {{ statistincs.averageRating }}</p>
         <UTable v-if="statistincs.reviews?.length > 0" :rows="statistincs.reviews" sticky class="max-h-[200px] mt-4"
           :columns="[
@@ -434,9 +438,51 @@ function prevImage() {
   }
 }
 
+const isZoomed = ref(false);
+
+function zoomImage() {
+  isZoomed.value = true;
+}
+
+function closeZoom() {
+  isZoomed.value = false;
+}
+
 </script>
 
 <style scoped>
+.zoom-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+}
+
+.zoomed-image {
+  max-width: 90%;
+  max-height: 90%;
+  object-fit: contain;
+  box-shadow: 0 0 rgba(255, 255, 255, 0.2);
+}
+
+.close-zoom {
+  position: absolute;
+  top: 20px;
+  right: 30px;
+  font-size: 40px;
+  color: white;
+  cursor: pointer;
+  font-weight: bold;
+  z-index: 10000;
+}
+
 .custom-carousel {
   width: 80%;
   margin: 0 auto 40px;
