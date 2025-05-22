@@ -171,11 +171,11 @@ async function redeemItem() {
   }
 }
 
-const items = [
-  'https://picsum.photos/1920/1080?random=1',
-  'https://picsum.photos/1920/1080?random=2',
-  'https://picsum.photos/1920/1080?random=3'
-]
+// const items = [
+//   'https://picsum.photos/1920/1080?random=1',
+//   'https://picsum.photos/1920/1080?random=2',
+//   'https://picsum.photos/1920/1080?random=3'
+// ]
 
 function goToReviewerPage(row) {
   if (row?.writerEmail) {
@@ -183,16 +183,16 @@ function goToReviewerPage(row) {
   }
 }
 
-const listingImages = computed(() => {
-  return items;
-});
+// const listingImages = computed(() => {
+//   return items;
+// });
 
 // Get the first image from the list or use a placeholder if none exists
-// const listingImages = computed(() => {
-//   return Array.isArray(listing.value.images)
-//     ? listing.value.images
-//     : "https://upload.wikimedia.org/wikipedia/commons/a/a3/Image-not-found.png?20210521171500"; // Placeholder if no image exists
-// });
+const listingImages = computed(() => {
+  return Array.isArray(listing.value.images)
+    ? listing.value.images
+    : "https://upload.wikimedia.org/wikipedia/commons/a/a3/Image-not-found.png?20210521171500"; // Placeholder if no image exists
+});
 
 async function fetchListings() {
   const session = await fetchAuthSession();

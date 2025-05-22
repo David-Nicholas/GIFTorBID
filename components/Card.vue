@@ -54,9 +54,9 @@ function goToListingPage() {
     router.push(`${props.listing.type}/${props.listing.listingID}`);
 }
 
-const firstImage = computed(() => {
-//     return `https://upload.wikimedia.org/wikipedia/commons/a/a3/Image-not-found.png?20210521171500`;
-// });
+// const firstImage = computed(() => {
+// //     return `https://upload.wikimedia.org/wikipedia/commons/a/a3/Image-not-found.png?20210521171500`;
+// // });
 
 // Get the first image from the list or use a placeholder if none exists
 const firstImage = computed(() => {
