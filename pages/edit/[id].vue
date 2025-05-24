@@ -97,11 +97,13 @@
                         <br>
                         <div v-if="isLowRating">
                             <div v-if="!order.redeemerReviewed">
+                                <div v-if="!timeLeft?.ended">
                                 <p>The redeemer rating is considered to be low you have the right to refuse him/her if
                                     you
                                     want.</p>
                                 <CustomButton :buttonText="'Refuse Redeemer'" class="custom-btn"
                                     @activate="refuseRedeemer" />
+                                </div>
                             </div>
                         </div>
                     </div>
